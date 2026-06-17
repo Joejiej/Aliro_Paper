@@ -1,0 +1,91 @@
+[
+  {
+    "section_index": 0,
+    "title": "Abstract",
+    "passed": true,
+    "notes": "摘要技术内容准确、结构清晰、数据详实，完整概括了工作；唯一不足是缺少引用，但在摘要语境下可接受，建议正文中补全。",
+    "issues": [
+      "摘要中未使用任何引用（\\cite{}），关键论断（如Bellare-Rogaway模型的安全性分析）缺乏文献支撑，虽在摘要中可适当放松，但建议补充引用以增强可信度。"
+    ],
+    "suggestions": [
+      "在摘要末尾或正文中引用Bellare-Rogaway模型原始文献（如Crypto 1993）以及NIST PQC标准文档，以支持安全性分析声明。"
+    ]
+  },
+  {
+    "section_index": 1,
+    "title": "Introduction",
+    "passed": true,
+    "notes": "引言结构清晰，背景充分，技术细节准确，引用规范且覆盖关键文献，提出了明确的研究贡献和挑战，篇幅合理。",
+    "issues": [],
+    "suggestions": [
+      "考虑在描述'harvest now, decrypt later'威胁时，可增加一个简要的参考文献（如公开报告或NIST公告）以加强引用支撑。",
+      "对象尺寸对比中，建议明确标注ECDSA签名在P-256上的典型长度（~72字节），已包含，无需修改。",
+      "可考虑在贡献列表后增加一句话，强调本文在工程实现方面的原创性（例如首次在Android HCE上实现完整的NIST PQC签名与KEM）。"
+    ]
+  },
+  {
+    "section_index": 2,
+    "title": "Related Work",
+    "passed": true,
+    "notes": "该章节全面概述了后量子密钥交换、AKE安全模型及受限平台部署的相关工作，结构清晰，引用准确，为PQ-Aliro的贡献提供了坚实的背景和定位。建议未来可进一步讨论安全模型（如BR与eCK）之间的具体差异如何影响协议设计。",
+    "issues": [],
+    "suggestions": []
+  },
+  {
+    "section_index": 3,
+    "title": "Background",
+    "passed": true,
+    "notes": "背景章节内容充实，Aliro 协议流程描述清晰，ML-KEM/ML-DSA 介绍准确且紧跟 NIST 标准，表格对比直观，整体质量高。",
+    "issues": [
+      "AUTH0 步骤中提及 UD 返回的 'noise contribution' 未明确其在 HKDF 密钥派生中的具体作用，可能让读者困惑。"
+    ],
+    "suggestions": [
+      "建议在 AUTH0 描述中补充说明噪声贡献（32 B）被用作 HKDF 的附加输入（salt 或 info），以确保共享秘密的额外随机性。"
+    ]
+  },
+  {
+    "section_index": 8,
+    "title": "Implementation",
+    "passed": true,
+    "notes": "Implementation章节技术细节详实，架构清晰，密钥隔离和异步签名设计合理，整体质量高。仅存在少量命名不一致和覆盖说明不足的问题，可做小范围修正。",
+    "issues": [
+      "在“Persistent key storage”段落中，加密私钥的变量名使用了“KEY_KYB_PRIV_CT”和“KEY_KYB_PRIV_IV”，但上下文是Dilithium私钥，应为“KEY_DIL_PRIV_CT”等，避免误解。",
+      "实现部分仅详细描述了ML-KEM-768和ML-DSA-65（对应Dilithium3），但测试部分声称覆盖了所有九种组合。建议在实现中简要说明其他安全级别的支持方式，或指出代码中通过参数化实现。"
+    ],
+    "suggestions": [
+      "修正变量命名，统一为Dilithium相关的标识符。",
+      "为增强可读性，可增加一个小节或注释说明如何切换不同安全级别。",
+      "考虑补充对Android Keystore导入对称密钥（SSKey）的兼容性说明，以确认其在所有支持Keystore的Android设备上可用。"
+    ]
+  },
+  {
+    "section_index": 9,
+    "title": "Evaluation",
+    "passed": true,
+    "notes": "章节结构清晰，内容详实，数据和分析充分，理论评估合理，引用规范。建议补充物理层开销和计算时间引用的多样性，但整体质量较高。",
+    "issues": [
+      "延迟估计仅考虑理论帧字节，未计入NFC物理层CRC、SOF/EOF及重传开销，可能低估实际延迟；",
+      "密码计算时间仅引用单一文献(Lima21)，缺乏多源交叉验证或更权威的基准。"
+    ],
+    "suggestions": [
+      "补充说明物理层额外开销（如CRC 2字节、帧起始/结束、防冲突等）对总延迟的估计影响，或明确其影响较小；",
+      "考虑引用NIST PQC基准测试（如pqm4、liboqs）或更多Android实测数据以增强计算时间估计的可信度。"
+    ]
+  },
+  {
+    "section_index": 10,
+    "title": "Discussion and Optimization",
+    "passed": true,
+    "notes": "本章讨论和优化部分结构清晰，覆盖了主要优化策略、明确局限性并规划了有意义的未来工作，内容扎实且引用规范。",
+    "issues": [],
+    "suggestions": []
+  },
+  {
+    "section_index": 11,
+    "title": "Conclusion",
+    "passed": true,
+    "notes": "结论章节清晰总结了论文贡献、性能结果和未来方向，技术内容准确，引用规范。",
+    "issues": [],
+    "suggestions": []
+  }
+]

@@ -1,0 +1,121 @@
+\section{Background}
+\label{sec:background}
+
+\subsection{The Aliro Access Control Protocol}
+\label{sec:aliro}
+
+Aliro 1.0~\cite{CSA:Aliro10} is a unified access-control specification published by the
+Connectivity Standards Alliance (CSA) in 2026.  It defines a credential-based
+authentication framework for NFC, BLE, and UWB-capable devices and is designed
+to replace proprietary card-emulation schemes with a single interoperable
+protocol.  In the NFC context two principals take part in every transaction:
+the \emph{User Device} (UD), typically a smartphone running Android Host Card
+Emulation (HCE), and the \emph{Reader}, a door controller or turnstile that
+initiates the exchange.
+
+\paragraph{Expedited Phase protocol flow.}
+Authentication proceeds in four logical messages over the ISO/IEC 14443 Type~A/B
+contactless channel:
+
+\begin{enumerate}
+  \item \textbf{SELECT (AID = \texttt{F0\,10\,20\,30\,40\,50})}: The Reader
+        selects the Aliro applet on the UD.  No payload is exchanged at this
+        step; it serves solely to activate the HCE service.
+
+  \item \textbf{AUTH0 (\texttt{INS = 0x80}), Reader $\to$ UD}: The Reader
+        transmits a fresh ephemeral public key together with a
+        \texttt{transaction\_identifier} (16~B) and a \texttt{reader\_identifier}
+        (32~B).  In the classical ECC instantiation this is a P-256 ECDH
+        ephemeral key; in PQ-Aliro it is an ML-KEM-768 ephemeral public key.
+        The UD responds with the key-encapsulation ciphertext (or ECDH public
+        share) and a 32-byte noise contribution.  Both parties can now derive a
+        shared session key via HKDF.
+
+  \item \textbf{LOADCERT (\texttt{INS = 0xD1}), Reader $\to$ UD}: The Reader
+        delivers its long-term certificate in Profile0000 DER format.  This
+        certificate carries the Reader's long-term public key and the issuer's
+        signature over it.  Upon successful verification the UD returns a
+        two-byte status word \texttt{0x9000}.
+
+  \item \textbf{AUTH1 (\texttt{INS = 0x81}), Reader $\to$ UD}: The Reader
+        signs the session transcript and sends the signature to the UD.  After
+        verifying the transcript signature the UD returns an AEAD-encrypted
+        payload containing its own long-term public key, its transcript
+        signature, and a \texttt{signaling\_bitmap} (2~B), authenticated with
+        AES-GCM using the previously derived session key.
+\end{enumerate}
+
+\paragraph{NFC physical-layer constraints.}
+ISO/IEC 14443 imposes strict limits on APDU payload sizes: the Reader side
+chunks application data into frames of at most 200~bytes, while the UD side
+responds in chunks of at most 240~bytes.  Fields longer than 255~bytes are
+encoded with BER-TLV long-form length (\texttt{0x82} followed by a two-byte
+big-endian length), consuming an extra 4~bytes of framing overhead per field.
+Each command APDU adds a 6-byte header
+(\texttt{CLA\,|\,INS\,|\,P1\,|\,P2\,|\,Lc\,...\,|\,Le}), and each HCE response
+appends a 2-byte status word.
+
+In the original ECC instantiation (P-256 ECDH + ECDSA) the total application-layer
+payload per transaction amounts to roughly 1.2~KB, typically completing in a
+handful of APDU round trips.  As Shor's algorithm renders elliptic-curve
+discrete-log problems tractable on a sufficiently large quantum computer, this
+ECC-based design must be migrated to post-quantum primitives --- a transition
+that dramatically increases the cryptographic object sizes and, consequently,
+the NFC communication overhead.
+
+% -----------------------------------------------------------------------
+
+\subsection{ML-KEM and ML-DSA}
+\label{sec:pqc}
+
+\paragraph{ML-KEM (Kyber).}
+ML-KEM was originally proposed as CRYSTALS-Kyber~\cite{EuroSP:BDKLLSSSS18} and
+was standardised by NIST as FIPS~203~\cite{NIST:FIPS203}.  It is a
+key-encapsulation mechanism (KEM) whose security reduces to the hardness of the
+Module Learning With Errors (Module-LWE) problem.  The scheme provides a triple
+$(\mathsf{Gen}, \mathsf{Encap}, \mathsf{Decap})$: the receiver generates a key
+pair $(\mathit{pk}, \mathit{sk}) \leftarrow \mathsf{Gen}()$; the sender
+produces a ciphertext and shared secret $(c, K) \leftarrow \mathsf{Encap}(\mathit{pk})$;
+the receiver recovers $K \leftarrow \mathsf{Decap}(\mathit{sk}, c)$.
+ML-KEM achieves IND-CCA security in the random-oracle model.  Three parameter
+sets target NIST security levels~1, 3, and~5:
+ML-KEM-512, ML-KEM-768, and ML-KEM-1024, respectively.
+PQ-Aliro adopts \textbf{ML-KEM-768} (Level~3) by default,
+yielding a public key of 1\,184~bytes, a ciphertext of 1\,088~bytes, and a
+32-byte shared secret.  This KEM replaces the P-256 ECDH ephemeral exchange
+in the AUTH0 step.
+
+\paragraph{ML-DSA (Dilithium).}
+ML-DSA was originally proposed as CRYSTALS-Dilithium~\cite{TCHES:DKLLSSS18}
+and was standardised as FIPS~204~\cite{NIST:FIPS204}.  Its security relies on
+the hardness of Module-LWE and Module Short Integer Solution (Module-SIS), and
+the scheme achieves EUF-CMA security.  Three parameter sets cover NIST security
+levels~2, 3, and~5: ML-DSA-44, ML-DSA-65, and ML-DSA-87.
+PQ-Aliro adopts \textbf{ML-DSA-65} (Level~3) by default, producing a public
+key of 1\,952~bytes and a signature of 3\,309~bytes.  ML-DSA replaces ECDSA in
+two roles: the Reader embeds its long-term ML-DSA public key in the Profile0000
+certificate transmitted during LOADCERT, and signs the session transcript in
+AUTH1; the UD likewise signs the transcript with its own ML-DSA key and returns
+the signature encrypted inside the AUTH1 response.
+
+Table~\ref{tab:sizes} summarises the size difference between classical P-256
+objects and their post-quantum counterparts.  Public keys and signatures grow
+by roughly 18--46$\times$, which is the primary driver of the $\sim\!13\times$
+increase in total NFC traffic observed in PQ-Aliro relative to the original
+ECC design.
+
+\begin{table}[t]
+\caption{Cryptographic object sizes: ECC P-256 vs.\ ML-KEM-768 vs.\ ML-DSA-65}
+\centering
+\begin{tabular}{lccc}
+\hline
+Object & ECC P-256 & ML-KEM-768 & ML-DSA-65 \\
+\hline
+Public key         & 65~B    & 1{,}184~B & 1{,}952~B \\
+Ciphertext / Signature & 72~B & 1{,}088~B & 3{,}309~B \\
+Shared secret      & 32~B    & 32~B      & ---       \\
+NIST security level & ---    & Level~3   & Level~3   \\
+\hline
+\end{tabular}
+\label{tab:sizes}
+\end{table}

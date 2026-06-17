@@ -1,0 +1,17 @@
+# Core
+langgraph>=0.2.0
+langchain-core>=0.3.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+typing-extensions>=4.0.0
+
+# LLM Providers (按需安装，至少一个)
+langchain-openai>=0.3.0          # OpenAI / DeepSeek（兼容接口）
+# langchain-anthropic>=0.3.0     # Claude (Anthropic)
+# langchain-google-genai>=2.0.0  # Gemini
+# langchain-community>=0.3.0     # Tongyi/Qwen (dashscope)
+# langchain-ollama>=0.2.0        # 本地 Ollama
+
+# Checkpointing（断点续跑，可选）
+langgraph-checkpoint>=2.0.0
+# langgraph-checkpoint-sqlite>=2.0.0  # SQLite 持久化

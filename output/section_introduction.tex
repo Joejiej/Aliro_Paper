@@ -1,0 +1,118 @@
+\section{Introduction}
+
+The advent of large-scale quantum computing poses a fundamental threat to the
+public-key cryptography underpinning today's digital infrastructure.
+Shor's algorithm~\cite{SIAM:Shor97} demonstrates that a sufficiently powerful
+quantum computer can factor large integers and compute discrete logarithms in
+polynomial time, thereby rendering RSA and elliptic-curve cryptography (ECC)
+insecure.
+Grover's algorithm~\cite{STOC:Grover96} further reduces the effective security
+of symmetric ciphers and hash functions by providing a quadratic speedup over
+classical brute-force search, effectively halving key lengths.
+While the timeline to cryptographically relevant quantum computers remains
+uncertain, the strategic risk is real: adversaries may harvest ciphertext today
+and decrypt it once quantum capability matures—a threat model known as
+``harvest now, decrypt later.''
+In response, the National Institute of Standards and Technology (NIST) has
+finalized two post-quantum cryptography (PQC) standards: FIPS~203 (ML-KEM,
+based on CRYSTALS-Kyber)~\cite{NIST:FIPS203} for key encapsulation, and
+FIPS~204 (ML-DSA, based on CRYSTALS-Dilithium)~\cite{NIST:FIPS204} for digital
+signatures.
+NIST IR~8547~\cite{NIST:IR8547} further mandates that federal agencies complete
+migration away from RSA and ECC by 2035.
+Physical access control systems are a particularly sensitive target: NFC-based
+door locks and vehicle entry systems guard critical infrastructure and personal
+safety, yet virtually all deployed protocols rely on ECC.
+Transitioning these systems to post-quantum security before the quantum threat
+materialises is therefore an urgent engineering challenge.
+
+Aliro~1.0~\cite{CSA:Aliro10}, published by the Connectivity Standards Alliance
+(CSA), is a recently standardised multi-modal access-control protocol supporting
+NFC, BLE, and UWB bearers.
+Its cryptographic core is built on ECC: an ECDH key-exchange over P-256 for
+session-key establishment and ECDSA for certificate-based entity authentication.
+Similar designs appear in the automotive domain through CCC Digital
+Key~3.0~\cite{CCC:DigKey3}, which likewise relies on ECDH/ECDSA for secure
+vehicle-phone pairing.
+Integrating ML-KEM and ML-DSA into such protocols is non-trivial for three
+interconnected reasons.
+First, \emph{object-size inflation}: an ML-DSA-65 public key occupies 1{,}952
+bytes and a signature 3{,}309 bytes, compared with 65 bytes and $\approx$72
+bytes for ECDSA on P-256---an increase of roughly $30\times$ and $46\times$,
+respectively.
+An ML-KEM-768 ciphertext is 1{,}088 bytes, versus 65 bytes for an ephemeral
+ECDH public key.
+Second, \emph{NFC channel constraints}: ISO/IEC~14443 ISO-DEP frames carry at
+most 255 bytes of application data per APDU, and the physical-layer bit rate
+ranges from 106 to 848~kbit/s.
+Even at 424~kbit/s---the rate typically negotiated by Android HCE---a single
+PQ-Aliro transaction under the default ML-DSA-65 $\times$ ML-KEM-768
+configuration transfers approximately 16.4~KB across $\approx$75 APDUs, roughly
+$14\times$ the $\approx$1.2~KB of a classical ECC transaction.
+Third, \emph{platform limitations}: Android's \texttt{KeyStore} API exposes no
+native support for lattice-based algorithms, requiring the implementation to
+manage PQC key material entirely in software using third-party libraries such as
+BouncyCastle.
+
+This paper presents \textbf{PQ-Aliro}, the first complete integration of
+NIST-standardised post-quantum algorithms into the Aliro NFC access-control
+protocol.
+Our contributions are as follows:
+
+\begin{enumerate}
+
+\item \textbf{Protocol design and implementation.}
+We design a drop-in PQC variant of the Aliro Expedited flow that replaces
+ECDH with ML-KEM-768 key encapsulation and ECDSA with ML-DSA-65 signatures,
+preserving the three-round AUTH0/LOADCERT/AUTH1 message structure.
+We provide a full open-source implementation: an Android HCE user-device app
+and a PC NFC reader, both using BouncyCastle~1.78 BCPQC as the cryptographic
+back-end.
+
+\item \textbf{APDU-level overhead analysis.}
+We conduct an exhaustive byte-accurate analysis of communication overhead for
+all nine PQC parameter combinations (Dilithium$\{2,3,5\} \times
+$Kyber$\{512,768,1024\}$).
+The default ML-DSA-65 $\times$ ML-KEM-768 configuration incurs $\approx$16.4~KB
+and $\approx$75 APDUs per transaction; the lightest ML-DSA-44 $\times$
+ML-KEM-512 configuration reduces this to $\approx$11.9~KB and $\approx$55
+APDUs.
+We additionally show that a \emph{key-slot} optimisation---pre-caching the
+reader certificate on the user device---eliminates the LOADCERT round and saves
+$\approx$5--7~KB.
+
+\item \textbf{Formal security analysis.}
+Building on the Bellare--Rogaway security model~\cite{C:BelRog93} and the
+provable security of ML-KEM~\cite{EuroSP:BDKLLSSSS18} and
+ML-DSA~\cite{TCHES:DKLLSSS18}, we provide a formal security proof establishing
+that PQ-Aliro achieves mutual authentication, forward secrecy, and
+reader-identity privacy under the module learning-with-errors (MLWE) and
+module short-integer-solution (MSIS) assumptions (see §\,6--7 for the full model
+and proof).
+
+\item \textbf{Engineering insights for constrained Android HCE.}
+We document critical implementation findings: isolating Dilithium private-key
+operations inside an \texttt{isolatedProcess} Service to prevent cross-process
+key leakage, and dispatching ML-DSA signing asynchronously to a background
+coroutine to avoid ANR deadlocks on the HCE main thread.
+These lessons generalise to any lattice-based protocol deployed over Android HCE.
+
+\end{enumerate}
+
+\noindent
+The remainder of this paper is organised as follows.
+Section~2 surveys related work on PQC integration in constrained communication
+protocols and NFC/BLE access control.
+Section~3 provides background on the Aliro~1.0 protocol and the ML-KEM/ML-DSA
+algorithms.
+Section~4 introduces formal definitions and notation used throughout the security
+analysis.
+Section~5 presents the PQ-Aliro protocol design, APDU message formats, and trust
+framework.
+Section~6 defines the security model and security goals.
+Section~7 contains the formal security proof.
+Section~8 describes the Android HCE and PC reader implementation details.
+Section~9 reports the communication-overhead evaluation and NFC timing
+measurements.
+Section~10 discusses limitations, optimisation trade-offs, and future directions.
+Section~11 concludes the paper.

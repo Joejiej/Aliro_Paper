@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="logBubbleBackground">#FFEEEEEE</color> <!-- 浅灰柔和 -->
+    <color name="logBubbleStroke">#22000000</color>      <!-- 轻微阴影感 -->
+    <color name="logTextColor">#FF333333</color>        <!-- 深灰文字 -->
+    <color name="cardBackground">#FFF5F5F5</color> <!-- 柔和浅灰 -->
+    <color name="cardTextColor">#FF333333</color>   <!-- 深灰文字 -->
+    <color name="buttonBackground">#DCC6FF</color> <!-- 浅紫色 -->
+    <color name="buttonTextColor">#4B0082</color>   <!-- 深紫文字 -->
+    <!-- 浅紫科技感按钮背景 -->
+    <color name="buttonStartAuthBackground">#D1C4FF</color> <!-- 浅紫 -->
+    <color name="buttonGenKeyBackground">#E0B3FF</color>  <!-- 略深一点的浅紫 -->
+    <color name="titleTextColor">#4B0082</color>            <!-- 标题同样深紫 -->
+
+
+
+
+
+</resources>

@@ -1,0 +1,630 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{fullpage}
+\usepackage{changepage}
+\usepackage[table,xcdraw]{xcolor}
+% \usepackage{subcaption}
+\usepackage{ulem}
+% \usepackage{mathtools}
+% \usepackage{mathrsfs}
+% \usepackage{amsmath, amsfonts, amsthm, color,bm}
+% \usepackage{centernot}
+\usepackage[theorems]{tcolorbox} 
+\usepackage{verbatim}
+\usepackage{dashbox}
+\usepackage{graphicx}
+% \usepackage{marvosym}
+
+\usepackage{booktabs}
+\usepackage{tablefootnote}
+% \usepackage{tcolorbox}
+% \usepackage{ulem}
+% \hypersetup{hidelinks}
+% \usepackage{verbatim}
+% \usepackage{color}
+
+\usepackage[n, operators, advantage, sets, adversary, landau, probability, notions, logic, ff, mm, primitives, events, complexity, asymptotics, keys]{cryptocode}
+\let\proof\relax
+\let\endproof\relax
+%\let\proof\relax
+%\let\endproof\relax
+
+% \renewcommand\qedsymbol{$\blacksquare$}
+% \newcommand\placeqed{\nobreak\enspace$\blacksquare$}
+% \usepackage{amssymb}
+% \usepackage{enumerate, enumitem}
+% \usepackage[strings]{underscore}
+% %\usepackage{hyperref}
+% \usepackage{multirow}
+% \usepackage{dashrule}
+% \usepackage{array}
+
+
+%\usepackage{latexsym}
+%\usepackage{amsmath, amsthm, amssymb, amsfonts}
+%\usepackage{mathrsfs}
+%\usepackage{graphicx}
+%\usepackage{xcolor}
+%\usepackage{tabularx}
+%\usepackage{threeparttable}
+%\usepackage[ruled,vlined]{algorithm2e}
+%\usepackage{url}
+%\usepackage{soul}
+\usepackage[numbers,sectionbib]{natbib}
+%\makeatletter
+%	\renewcommand\@biblabel[1]{{[#1]\hfill}}
+%\makeatother
+%\setlength{\bibsep}{0.5ex}
+\usepackage[colorlinks, anchorcolor=blue, linkcolor=magenta, citecolor=blue, urlcolor=cyan]{hyperref}
+
+\usepackage{graphicx}
+
+\usepackage{amsfonts,amstext,amsmath,amsthm}
+\usepackage{enumitem}
+\usepackage{multirow}
+
+\usepackage{tikz}
+\usetikzlibrary{decorations.pathreplacing,calligraphy}
+\usepackage{diagbox}
+\usepackage{tabularx}
+\usepackage{makecell}
+
+\tcbuselibrary{skins , breakable , listings ,theorems}
+
+\newtcolorbox{mybox}[2][]
+{colback = black , colframe = black , fonttitle = \bfseries\color{black},
+colbacktitle = white , enhanced ,
+attach boxed title to top left={xshift=1cm,yshift=-3mm},
+title=#2,#1}
+%\usepackage[title,titletoc,header]{appendix}
+%
+%\usepackage{tikz}
+%\usetikzlibrary{calc,backgrounds,arrows}
+%\tikzstyle{block}=[draw opacity=0.7,line width=1.4cm]
+%
+%\usepackage{framed}
+%\usepackage{boxedminipage}
+%
+\newtheorem{thm}{Theorem}[]
+\newtheorem{defn}{Definition}[]
+\newtheorem{lem}{Lemma}[]
+\newtheorem{rmk}{Remark}[]
+\newcommand{\blue}{\color{black}}
+\newcommand{\core}{\mathsf{C}}
+\newcommand{\fw}{\mathsf{F}}
+\newcommand{\news}{\textsc{NewSession}}
+\newcommand{\mcp}{\mathcal{P}}
+\newcommand{\role}{\mathsf{role}}
+\newcommand{\srake}{\mathsf{srAKE}}
+\newcommand{\wrap}{\mathsf{Wrap}}
+\newcommand{\prm}{^{\prime}}
+\newcommand{\tk}{\widetilde{K}}
+\newcommand{\tc}{\tilde{c}}
+\newcommand{\tkp}{K_{\iclient}}
+\newcommand{\tcp}{c_{\iclient}}
+\newcommand{\tkpp}{K_{\jserver}}
+\newcommand{\tcpp}{c_{\jserver}}
+\newcommand{\mcpp}{\mathcal{P}^{\prime}}
+\newcommand{\mcs}{\mathcal{S}}
+\newcommand{\fke}{\mathcal{F}_{\mathsf{AKE}}}
+\newcommand{\mcz}{\mathcal{Z}}
+\newcommand{\gray}{\color{gray}}
+\newcommand{\hyb}{\mathtt{Hyb}}
+\newcommand{\sid}{sid}
+\newcommand{\mck}{\mathcal{K}}
+\newcommand{\dms}{\textsf{DMS}}
+\newcommand{\kem}{\mathsf{KEM}}
+\newcommand{\tr}{\mathsf{trans}}
+\newcommand{\mca}{\mathsf{A}}
+\newcommand{\mcb}{\mathcal{B}}
+\newcommand{\mcr}{\mathcal{R}}
+\newcommand{\mcc}{\mathcal{C}}
+\newcommand{\bkem}{\mathsf{bKEM}}
+\newcommand{\picom}{\Pi_\mathsf{Com}}
+\newcommand{\setup}{\mathsf{Setup}}
+\newcommand{\osrake}{\overline{\srake}}
+\newcommand{\wpk}{\widetilde{pk}}
+\newcommand{\nk}{\textsc{NewKey}}
+\newcommand{\send}{\textsc{Send}}
+\newcommand{\sent}{\textsc{Sent}}
+\newcommand{\dhk}{\textsf{DHK}}
+\newcommand{\owpca}{\textrm{OW-PCA}}
+\newcommand{\interfere}{\textsf{Interfere}}
+\newcommand{\interfered}{\textsc{interfered}}
+\newcommand{\rk}[1]{\begin{rmk}#1\end{rmk}}
+\newcommand{\tbd}{{\color{red}TBD}}
+\newcommand{\et}{\text{et al.}}
+\newcommand{\pka}{{pk}_{\iclient}}
+\newcommand{\pkb}{{pk}_{\jserver}}
+\newcommand{\ska}{{sk}_{\iclient}}
+\newcommand{\skb}{{sk}_{\jserver}}
+\newcommand{\msa}{\mathsf{A}}
+\newcommand{\msb}{\mathsf{B}}
+\newcommand{\csidhk}{\mathsf{CSIDHK}}
+% \newcommand{\defn}[2]{\begin{defn}[#1]#2\end{defn}}
+\newcommand{\ta}{\tilde{\mathfrak{a}}}
+\newcommand{\tai}{\tilde{\mathfrak{a}}_{1}}
+\newcommand{\taii}{\tilde{\mathfrak{a}}_{2}}
+\newcommand{\tb}{\tilde{\mathfrak{b}}}
+\newcommand{\tbi}{\tilde{\mathfrak{b}}_{1}}
+\newcommand{\tbii}{\tilde{\mathfrak{b}}_{2}}
+\newcommand{\mff}{\mathfrak{f}}
+\newcommand{\mfg}{\mathfrak{g}}
+\newcommand{\clo}{\mathrm{cl}(\mathcal{O})}
+\newcommand{\tmr}{\tilde{\mathfrak{r}}}
+\newcommand{\fauth}{\mathcal{F}_{\mathrm{AUTH}}}
+\newcommand{\verif}{\mathsf{Verif}}
+\newcommand{\init}{\textsc{Init}}
+\newcommand{\inited}{\textsc{Initiated}}
+\newcommand{\fkhake}{\mathcal{F}_{\sf khAKE}}
+\newcommand{\negli}{\mathsf{negl}}
+\newcommand{\maulcom}{\mathsf{MaulCom}}
+\newcommand{\mmaul}{\mathsf{mMaul}}
+\newcommand{\xmaul}{\mathsf{xMaul}}
+\newcommand{\cmaul}{\mathsf{CMaul}}
+\newcommand{\kmaul}{\mathsf{KMaul}}
+\newcommand{\rcmaul}{\mathcal{R}_{cm}}
+\newcommand{\dcmaul}{\mathsf{D}_{cm}}
+\newcommand{\rg}{\mathsf{Rg}}
+\newcommand{\kg}{\mathsf{Kg}}
+\newcommand{\cg}{\mathsf{Cg}}
+\newcommand{\ppp}{\mathsf{pp}}
+\newcommand{\trans}{\mathsf{aux}}
+\newcommand{\msc}{\mathsf{C}}
+\newcommand{\specious}{\textsc{Specious}}
+\newcommand{\SEC}{\lambda}
+\newcommand{\msd}{\mathsf{D}}
+\newcommand{\gen}{\mathsf{Gen}}
+\newcommand{\newsess}{\textsc{NewSession}}
+\newcommand{\initiator}{\mathsf{In}}
+\newcommand{\responder}{\mathsf{Re}}
+\newcommand{\ideal}{\mathsf{Ideal}}
+\newcommand{\real}{\mathsf{Real}}
+\newcommand{\fsat}{\mathcal{F}_{\mathsf{SAT}}}
+\newcommand{\wfs}{\text{wFS}}
+\newcommand{\comp}{\textsc{Compromise}}
+\newcommand{\compromised}{\textsc{compromised}}
+\newcommand{\newk}{\textsc{NewKey}}
+\newcommand{\imper}{\textsc{Impersonate}}
+\newcommand{\fresh}{\textsc{fresh}}
+\newcommand{\completed}{\textsc{completed}}
+\newcommand{\rec}{\mathsf{rec}}
+\newcommand{\usrsess}{\textsc{UsrSession}}
+\newcommand{\srvsess}{\textsc{SrvSession}}
+\newcommand{\client}{\mathsf{U}}
+\newcommand{\server}{\mathsf{S}}
+\newcommand{\iclient}{i}
+\newcommand{\jserver}{j}
+\newcommand{\fakekci}{\mathcal{F}_{\textsf{AKE-KCI}}}
+\newcommand{\akewfs}{\mathsf{AKE}_{\mathsf{wFS}}}
+\newcommand{\ckeymaul}{\mathsf{CKeyMaul}}
+\newcommand{\keymaul}{\mathsf{KeyMaul}}
+\newcommand{\decap}{\mathsf{Decap}}
+\newcommand{\encap}{\mathsf{Encap}}
+\newcommand{\sruc}{\mathsf{srUC}}
+\newcommand{\elgamal}{\textsf{ElGamal-KEM}}
+\newcommand{\receive}{\textsc{Receive}}
+\newcommand{\red}{\color{red}}
+\newcommand{\rer}{\mathsf{Rer}}
+\newcommand{\deliver}{\textsc{Deliver}}
+\definecolor{mygray}{gray}{0.8}
+
+\usepackage{marvosym}
+
+\begin{document}
+
+\begin{sloppypar}
+
+% \noindent A preliminary version of this paper  appears in Advances in Cryptology - ASIACRYPT 2025. This is the full version.	
+
+\begingroup
+\let\newpage\relax
+\title{Post-quantum Aliro
+% \thanks{We would like to thank anonymous reviewers of Eurocrypt 2025, Crypto 2025 and Asiacrypt 2025 for their helpful comments and suggestions.
+% This work is supported in part by the National Natural Science Foundation of
+% China (Grant No.62032005, No.62425205, No.62122092, No.62202485 and No.62372462) and the Young Elite Scientists Sponsorship Program by China Association for Science and Technology (No.YESS20230028).}
+}
+
+\author{
+	% \and
+ % 	Moti Yung
+ % 	\thanks{Google LLC \& Columbia University, New York, USA}
+	% \\
+	% \texttt{motiyung@gmail.com}
+}
+
+\date{\today}
+
+\maketitle
+ \endgroup
+ 
+\thispagestyle{empty}
+
+
+\begin{abstract}
+We present PQ-Aliro, a post-quantum version of the Aliro protocol, which is a specification that describes data exchange protocol and 
+access model between User Device and Reader.
+\end{abstract}
+
+
+\newpage
+
+\pagestyle{plain}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% \tableofcontents
+
+% \newpage
+\section{Definitions and Components}
+\label{definition 1}
+\noindent\textbf{Notations.}
+Let $g$ be a generator of the cyclic group $\GG$ of prime order $p$.
+Let $y\sample \mathcal{Y}$ denote sampling a uniformly random element $y$ from $\mathcal{Y}$.
+$x\coloneqq z$ means that the value of $z$ is assigned to $x$.
+For a probabilistic algorithm $f(x)$ with input $x$, $y\sample f(x)$ represents a random output of $f(x)$ and $y\gets f(x;r)$ represents the output of $f(x)$ using randomness $r$.
+% $y\gets g(x)$ represents the process of picking randomness $r$ at random and setting $y\gets g(x;r)$.
+For a positive integer $N$, $[N]$ denotes the integer set $\mathcal{X} \coloneqq \{1, 2, 3,\cdots, N\}$.
+Let $\SEC$ denote the security parameter, $\negli(\lambda)$ denote a negligible function of $\SEC$ and $p(\SEC)$ denote a polynomial of $\SEC$.
+For all polynomials $p(\lambda)$ and all sufficiently large $\lambda$, it holds that $\negli(\lambda) < \frac{1}{p(\lambda)}$.
+% PPT refers to {\it probabilistic polynomial-time}.
+% For two parties $\mathsf{A}$ and $\mathsf{B}$, $\mathsf{A} \circ \mathsf{B}$ denotes a composed party of $\mathsf{A}$ and $\mathsf{B}$.
+
+\begin{comment}
+    \begin{defn}[Discrete Logarithm (DL) Assumption]
+    Consider the following experiment between the challenger $\mathcal{C}$ and the adversary $\mathcal{A}$. $\mathcal{C}$ samples $a\sample \ZZ_{p}$, and sends $g^{a}$ to $\mathcal{A}$. We define the advantage of $\mathcal{A}$ as
+    $$
+    \mathrm{DLAdv}[\mathcal{A},\GG] \coloneqq \mathrm{Pr}[\mathcal{A}(g,g^{a}) = a].
+    $$
+    The DL assumption says that for any probabilistic polynomial-time $(\text{PPT})$ adversary $\mathcal{A}$, $\mathrm{DLAdv}[\mathcal{A},\GG]$ is negligible.
+\end{defn}
+\end{comment}
+
+% The CDH assumption and DDH assumption are deferred to Appendix \ref{cdhddh}. 
+%We recall the \textit{strong Diffie-Hellman} (SDH) assumption~\cite{RSA:AbdBelRog01}. 
+% First, we recall the DDH oracle: Given a cyclic group $\GG$ of order $p$ with a generator $g$ and a number $x\in \ZZ_{p}$, on input $(g^{x},g^{y},g^{z})$, the DDH oracle answers whether $g^{xy}=g^{z}$.
+\subsection{Key Encapsulation Mechanism}
+\label{kem def}
+A key encapsulation mechanism~(KEM)~\cite{EPRINT:Shoup01} consists of the following algorithms:
+\begin{itemize}[itemsep=0pt, topsep=0pt, parsep=0pt]
+   \item $\setup(1^{\lambda})$ takes as input security parameter $\lambda$ and produces public parameters $\mathsf{pp}$, including the key space $\mathcal{K}$, public key space $\mathcal{PK}$, private key space $\mathcal{SK}$ and ciphertext space $\mathcal{C}$.
+   \item $\mathsf{Gen}(\mathsf{pp})$ takes as input a public parameter $\mathsf{pp}$ and outputs a key pair $(pk,sk)$.
+   \item $\mathsf{Encap}(pk)$ takes as input a public key $pk$ and outputs a ciphertext $c$ and a key $K$.
+   \item $\mathsf{Decap}(sk,c)$ takes as input a private key $sk$ and a ciphertext $c$ and outputs a key $K$.
+\end{itemize}
+
+\noindent{{\bf Correctness.}}
+For all $\ppp\sample \setup(1^{\lambda})$, $(pk,sk)\sample \gen(\ppp)$ and $(c,K)\sample \mathsf{Encap}(pk)$, it holds that $\prob{\mathsf{Decap}(sk,c)\neq K}\leq \negli(\lambda)$.
+
+\smallskip
+We define blindness for KEM as follows. In fact, the universal decryptability for KEM with no tags in \cite{AC:CheHuaYun20} implies this property.
+
+\begin{defn}[Blindness]
+     For a KEM ${\sf KEM}=({\sf Setup}, {\sf Gen}, {\sf Encap}, {\sf Decap})$, we say ${\sf KEM}$ is blind if the ${\sf Encap}$ algorithm consists of following sub-algorithms.
+     \begin{itemize}[itemsep=0pt, topsep=0pt, parsep=0pt]
+        \item The randomness generation algorithm $\mathsf{Rg}(\mathsf{pp})$: takes as input a public parameter $\mathsf{pp}$, {outputs} a randomness $r$.
+        \item The key generation algorithm $\mathsf{Kg}(pk,r)$: takes as input a public key $pk$ and a randomness $r$, outputs a key $K$.
+        \item The ciphertext generation algorithm $\mathsf{Cg}(r)$: takes as input a randomness $r$, outputs a ciphertext $c$.
+     \end{itemize}
+     and for all $\mathsf{pp}\sample \mathsf{Setup}(1^{\lambda})$, $r\sample \mathsf{Rg}(\mathsf{pp})$, $c\gets \mathsf{Cg}(r)$ and $(pk,sk)\sample\mathsf{Gen}(\mathsf{pp})$, we have $\prob{\mathsf{Decap}(sk,c) \neq \mathsf{Kg}(pk,r)}\leq\negli(\lambda)$.
+ \end{defn}
+
+We recall a practical security notion of KEM, called {\it one-wayness under plaintext checking attacks} (OW-PCA) \cite{ACISP:SteBaeZhe02} as below. % , which is slightly stronger than OW-CPA security: 
+%%%%Given a public key $pk$ and a ciphertext $C$, it is hard for an adversary that has access to a plaintext checking oracle (PCO) to compute the correct session key $K$. In particular, the PCO receives a key-ciphertext pair $(K,C)$ from the adversary, and returns whether $C$ decapsulates to $K$ under the private key $sk$ or not.
+%First we formally define a plaintext checking oracle.
+% \begin{defn}[Plaintext Checking Oracle]
+%     Given a key encapsulation mechanism $\mathsf{KEM=(Setup,Gen, Encap, Decap)}$ and a key pair $(pk,sk)\sample\mathsf{Gen}$, we define an associated PCO algorithm $\mathsf{PCO}_{\mathsf{KEM},sk}(\cdot,\cdot)$, where given a ciphertext $C$ and a key $K$, $\mathsf{PCO}_{\mathsf{KEM},sk}(C,K)$ returns $1$ if $\mathsf{Decap}(sk,C)=K$, else returns $0$.
+% \end{defn}
+
+ % Based on the plaintext checking oracle, we define the OW-PCA security of KEM in Fig.~\ref{OW-PCA}.
+ \begin{defn}[One-wayness under plaintext checking attacks~\cite{ACISP:SteBaeZhe02}]
+     For a KEM ${\sf KEM}=({\sf Setup}, {\sf Gen}, {\sf Encap}, {\sf Decap})$, we say ${\sf KEM}$ satisfies one-wayness under plaintext checking attacks (OW-PCA) if for any PPT adversary ${\cal A}$, $\mathrm{Adv}_{\mathsf{KEM}}^{\mathsf{OW}\text{-}\mathsf{PCA}}(\mathcal{A},\lambda)\coloneqq \mathrm{Pr}[{\mathsf{OW}\text{-}\mathsf{PCA}}(\mathcal{A},\lambda,\mathsf{KEM}) = 1] \leq \negli(\lambda)$, 
+     where game ${\sf OW}$-${\sf PCA}({\cal A}, \lambda, {\sf KEM})$ is defined in Fig.~\ref{OW-PCA}.
+ \end{defn}
+
+ \begin{figure}[!t]
+   \begin{pchstack}[boxed, center]
+   %\scriptsize
+   % \fbox{
+   \begin{pcvstack}
+       \pcvspace
+       \procedure[syntaxhighlight=auto,linenumbering]{\textbf{Exp}\ ${\mathsf{OW}\text{-}\mathsf{PCA}}(\mathcal{A},\lambda,\mathsf{KEM})$}{%
+       \ppp\sample \mathsf{\setup}(1^{\lambda})\\
+       (pk,sk)\sample \mathsf{Gen}(\ppp)\\
+       (c,K)\sample \mathsf{Encap}(pk)\\
+       K^{\prime}\gets \adv^{\mathsf{PCO}_{\mathsf{KEM},sk}(\cdot,\cdot)}(pk,c)\\
+       \pcreturn K == K^{\prime}
+       % \pcif K = K^{\prime}\\
+       % \t \pcreturn 1\\
+       % \pcelse\\
+       % \t \pcreturn 0
+       }
+
+   \end{pcvstack}
+       
+   \pchspace
+
+   \begin{pcvstack}
+   \pcvspace
+
+   \procedure[linenumbering]{$\mathsf{PCO}_{\mathsf{KEM},sk}(c,K)$}{%
+       K^{*}\gets \mathsf{Decap}(sk,c)\\
+       \pcreturn K == K^{*}
+       % \pcif K = K^{*}\\
+       % \t \pcreturn 1\\
+       % \pcelse\\
+       % \t \pcreturn 0
+   }
+   
+   \end{pcvstack}
+   % }
+   \end{pchstack}
+   \caption{The $\owpca$ game for $\kem=(\setup,\mathsf{Gen},\mathsf{Encap},\mathsf{Decap})$.
+   % $\mathcal{A}$ has access to oracle $\mathcal{O} \coloneqq \{ \mathsf{PCO}_{\mathsf{KEM},sk}(\cdot,\cdot)\}$.
+   }
+   \label{OW-PCA}
+   \end{figure}
+
+We define a new notion called strong one-wayness for blind KEM as follows.
+
+{\blue
+    \begin{defn}[Strong one-wayness]
+    For a blind KEM $\bkem=({\sf Setup},$ $ {\sf Gen}, {\sf Encap}, {\sf Decap})$ where $\encap=(\rg, \kg, \cg)$, let $\ppp\sample \setup(1^{\SEC}),(pk,sk)\sample \gen(\ppp), r\sample \rg(\ppp)$ and $c\gets \cg(r)$, we say $\bkem$ satisfies strong one-wayness if for any PPT adversary ${\cal A}$, it holds that
+    $\operatorname{Adv}_{\bkem}^{\mathsf{stOW}}(\mathcal{A},\lambda)\coloneqq\mathrm{Pr}[K=\kg({pk}',r)=\decap({sk},c')| (K,{pk}',c')\gets \adv({pk},c)]\leq \negli(\SEC)$.
+    % where $(pk',sk')$ is a public-private key pair.
+\end{defn}} 
+
+
+
+
+\section{Protocol Description}
+\noindent{\bf Generic Construction.} 
+The PQ-Aliro protocol is shown in Fig.~\ref{high-level ake2}. There are two users: Reader and User Device. Each party holds a pair of long-term keys.
+As is noted by the Aliro 1.0 specification, ``A Reader SHALL have a key pair (reader\_PubK/reader\_PrivK) and MAY have a certificate (reader\_Cert) containing the Reader public key. The Reader uses this key pair to authenticate itself to the User Device. $\cdots$ A User Device SHALL have an {\bf Access Credential} with a key pair (credential\_PubK/credential\_PrivK) that is unique to the User Device. If an Access Document is present, it SHALL contain the public key of the Access Credential.''
+
+The PQ-Aliro protocol runs as follows.
+Firstly, the Reader uses $\kem.\gen$ to generate a pair of ephemeral keys $({pk}_{e}, {sk}_{e})$.
+
+\begin{figure}[!t]
+    \begin{center}
+       \begin{pchstack}[center, boxed]
+          \scalebox{0.9}{\pseudocode{
+              {\sf Reader}({pk}_{R}, {sk}_{\sf R}) \< \<{\sf User~Device}({pk}_{\sf UD}, {sk}_{\sf UD})\\
+              [0.1\baselineskip ][\hline]
+              \<\< \\[-0.5\baselineskip ]
+              ({pk}_{e},{sk}_{e})\sample {\sf KEM}.\gen(1^{\lambda})\<\< \\
+              %C\gets \mathsf{Com}(\widetilde{pk})\<\< \tilde{c}\gets \bkem.\cg(\tilde{r})\\
+              \< \sendmessageright*[1.5cm]{{pk}_{e}}\\
+              \<\<{(c_{e},K_{e})\sample \kem.\mathsf{Encap}(pk_{e})}\\
+              \< \sendmessageleft*[1.5cm]{c_{e}}\\
+              K_{e}\gets \mathsf{KEM}.\mathsf{Decap}({sk}_{e},c_{e})\\
+              trans=\mathsf{H}({pk}_{e}||c_{e})\\
+              \sigma_{\sf Reader}\gets \mathsf{MLDSA.Sign}({sk}_{\sf R}, trans)\< \sendmessageright*[1.5cm]{\sigma_{\sf Reader},{\sf cert}_{R}[{pk}_{\sf R}]} \< \\
+              \<\< \text{if }\mathsf{MLDSA}.\verif({pk}_{\sf R}, trans, \sigma_{\sf Reader}) == 0:\text{abort}\\
+              \< \makebox[0pt][c]{\setlength{\fboxsep}{4pt}\fbox{\begin{minipage}{11cm}\centering
+    ${\sf HS}\gets {\sf HKDF.Extract}(trans, K_e)$\\
+    $\mathsf{SKDevice}_{\sf R}\gets {\sf HKDF.Expand}(\mathsf{HS}, \text{``R''}||trans)$\\
+    $\mathsf{SKDevice}_{\sf UD}\gets {\sf HKDF.Expand}(\mathsf{HS}, \text{``UD''}||trans)$
+\end{minipage}}}\\
+              \<\< \sigma_{\sf UD}\gets \mathsf{MLDSA.Sign}({sk}_{\sf UD}, trans)\\
+              \<\<c_{\sf UD}\gets \mathsf{AEAD.Enc}(\mathsf{SKDevice}_{\sf UD}, {pk}_{\sf UD}||\sigma_{\sf UD})\\
+              \< \sendmessageleft*[1.5cm]{\mathsf{AUTH1~response}:c_{\sf UD}}\\
+              {pk}_{\sf UD} || \sigma_{\sf UD} \gets {\sf AEAD.Dec}({\sf SKDevice}_{\sf UD}, c_{\sf UD})\\
+              \text{if }\mathsf{MLDSA}.\verif({pk}_{\sf UD}, trans, \sigma_{\sf UD}) == 0:\text{abort}
+              }
+           }
+          \end{pchstack}
+    \end{center}
+          \caption{Our PQ-Aliro protocol.}
+          \label{high-level ake2}
+       \end{figure}
+
+\section{Security Model}
+
+The expedited-standard phase is intended to provide the following properties:
+\begin{itemize}
+    \item Mutual authentication.
+    \item Perfect forward secrecy.
+    \item Tracking resilience.
+    \item Integrity and confidentiality.
+\end{itemize}
+
+\noindent\textbf{Tracking resilience.}
+Since one of the security goals is tracking resilience, data that could be used to track an individual or specific User Device, such as the ID should have confidentiality protection when in transit.
+The User Device SHALL return an {\sf AUTH1 response} such that an external observer cannot distinguish whether or not the User Device possesses a given reader public key or Access Credential by observing the returned data.
+Specifically, the {\sf AUTH1 response} message is an encrypted message, which is to prevent a malicious Reader from extracting stable identifiers or to be able to detect whether the User Device has a relationship with a specific Reader.
+
+Our security model follows Lyu $\et$~\cite{AC:LLHG22}, which is an extension of the Bellare-Rogaway (BR) model~\cite{C:BelRog93}, which naturally captures the long-term key compromise and mutual authentication.
+Since Aliro is not designed to be secure against the compromise of {\it session state} or {\it ephemeral randomness}, we do not include these compromise capabilities in our model.
+Additionally, the privacy of User Device identities is taken into consideration.
+
+The mutual authentication, perfect forward security and User Device identity privacy are captured by three experiments named ${\sf Exp}_{\mathsf{AKE},\mu,\ell,\adv}^{\mathsf{AUTH}}$, ${\sf Exp}_{\mathsf{AKE},\mu,\ell,\adv}^{\mathsf{IND}}$ and ${\sf Exp}_{\mathsf{AKE},\mu,\ell,\adv}^{\mathsf{Privacy}}$.
+We would define some oracles for the adversary $\adv$ in the above experiments to capture its ability.
+The adversary is allowed to eavesdrop, modify or drop the messages in the public channels.
+
+\medskip\noindent\textbf{Oracles.}
+Firstly, we define oracles and their static variables to formalize the behavior of users and the attacks by the adversary. Suppose there are at most $\mu$ users $P_1, P_2, \ldots, P_\mu$, and each user will involve at most $\ell$ instances. $P_i$ is formalized by a series of oracles, $\pi_i^1, \pi_i^2, \ldots, \pi_i^\ell$.
+
+\smallskip\noindent\uline{$\pi_i^s$.} Oracle $\pi_i^s$ will take a message as input and output a new message, simulating user $P_i$'s execution of $s$-th protocol instance. Each oracle $\pi_i^s$ has access to $P_i$'s resource $\mathsf{res}_i := (sk_i, pp, \mathsf{PKList} := \{pk_u\}_{u \in [\mu]})$. $\pi_i^s$ also has its own variables $\mathsf{vars}_{\pi_i^s} := (\mathsf{st}_i^s, \mathsf{Pid}_i^s, \Psi_i^s, k_i^s)$.
+\begin{itemize}
+    \item $\mathsf{st}_i^s$: State information that has to be stored for $\pi_i^s$'s next round in the execution of the protocol.
+    \item $\mathsf{Pid}_i^s$: The intended communication peer's identity.
+    \item $k_i^s \in \mathcal{K}$: The session key computed by $\pi_i^s$. Here $\mathcal{K}$ is the session key space. We assume that $\emptyset \in \mathcal{K}$.
+    \item $\Psi_i^s \in \{\emptyset, \mathsf{accept}, \mathsf{reject}\}$: $\Psi_i^s$ indicates whether $\pi_i^s$ has completed the protocol execution and accepted $k_i^s$.
+\end{itemize}
+At the beginning, $(\mathsf{st}_i^s, \mathsf{Pid}_i^s, k_i^s, \Psi_i^s)$ are initialized to $(\emptyset, \emptyset, \emptyset, \emptyset)$. We declare that $k_i^s \neq \emptyset$ if and only if $\Psi_i^s = \mathsf{accept}$.
+
+Next, we formalize the oracles that dealing with $\mathcal{A}$'s queries as follows.
+
+\smallskip\noindent\uline{$\mathsf{Send}(i, s, j, \mathsf{MsgList})$.} For the query $(i, s, j, \mathsf{MsgList})$, it means that $\mathcal{A}$ invokes $\pi_i^s$ with $\mathsf{MsgList}$, making $\pi_i^s$ to play the role of initiator with $j$ being the intended communication peer. Oracle $\pi_i^s$ will deal with each message in $\mathsf{MsgList}$ to generate new messages $\mathsf{MsgList}'$ according to the protocol specification and update its own variables $\mathsf{vars}_{\pi_i^s}$. The output messages $\mathsf{MsgList}'$ is returned to $\mathcal{A}$. If $\mathsf{MsgList} = \emptyset$, $\mathcal{A}$ asks oracle $\pi_i^s$ to send the first round message to $j$ (via broadcast channel).
+
+If $\mathsf{Send}(i, s, j, \mathsf{MsgList})$ is the $\tau$-th query asked by $\mathcal{A}$ and $\pi_i^s$ changes $\Psi_i^s$ to $\mathsf{accept}$ after that, then we say that $\pi_i^s$ is $\tau$-accepted.
+
+\smallskip\noindent\uline{$\mathsf{Respond}(\mathsf{OList}, \mathsf{MsgList})$.} For the query $(\mathsf{OList}, \mathsf{MsgList})$, it means that $\mathcal{A}$ chooses an oracle set $\mathsf{OList} = \{\pi_j^t\}_{j \in \mathsf{OList}, \pi_j^t}$ to respond messages in $\mathsf{MsgList}$. For $\forall \pi_j^t \in \mathsf{OList}$, $\pi_j^t$ executes the protocol with messages in $\mathsf{MsgList}$ as a potential recipient, and its variables $\mathsf{var}_{\pi_j^t} = (\mathsf{st}_j^t, \mathsf{Pid}_j^t, \Psi_j^t, k_j^t)$ are updated accordingly. Those responding messages generated by $\mathsf{OList}$ constitute message set $\mathsf{MsgList}'$. The output message set $\mathsf{MsgList}'$ is returned to $\mathcal{A}$.
+
+\smallskip\noindent\uline{$\mathsf{Corrupt}(i)$.} Upon $\mathcal{A}$'s query $i$, the oracle reveals to $\mathcal{A}$ the long-term secret key $sk_i$ of party $P_i$. After this corruption, $\pi_i^1, \ldots, \pi_i^\ell$ will stop answering any query from $\mathcal{A}$. If $\mathsf{Corrupt}(i)$ is the $\tau$-th query asked by $\mathcal{A}$, we say that $P_i$ is $\tau$-corrupted. If $\mathcal{A}$ has never asked $\mathsf{Corrupt}(i)$, we say that $P_i$ is $\infty$-corrupted.
+
+\smallskip\noindent\uline{$\mathsf{RegisterCorrupt}(i, pk)$.} $\mathcal{A}$'s query $(i, pk)$ suggests that $\mathcal{A}$ registers a new party $P_i (i > \mu)$. The oracle distributes $(i, pk_i := pk)$ to all users. In this case, we say that $P_i$ is $0$-corrupted.
+
+\smallskip\noindent\uline{$\mathsf{SessionKeyReveal}(i, s)$.} The query $(i, s)$ means that $\mathcal{A}$ asks the oracle to reveal $\pi_i^s$'s session key. If $\Psi_i^s \neq \mathsf{accept}$, the oracle returns $\bot$. Otherwise, the oracle returns the session key $k_i^s$ of $\pi_i^s$. If $\mathsf{SessionKeyReveal}(i, s)$ is the $\tau$-th query asked by $\mathcal{A}$, we say that $\pi_i^s$ is $\tau$-revealed. If $\mathcal{A}$ has never asked $\mathsf{SessionKeyReveal}(i, s)$, we say that $\pi_i^s$ is $\infty$-revealed.
+
+\smallskip\noindent\uline{$\mathsf{TestKey}(i, s)$.} The query $(i, s)$ means that $\mathcal{A}$ chooses the session key of $\pi_i^s$ for challenge (test). If $\Psi_i^s \neq \mathsf{accept}$, the oracle returns $\bot$. Otherwise, the oracle sets $k_0 = k_i^s$, samples $k_1 \gets \$ \mathcal{K}$. The oracle returns $k_b$ to $\mathcal{A}$, where $b$ is the random bit chosen by the challenger.
+
+\smallskip\noindent\uline{$\mathsf{TestPrivacy}(i_0, j_0, i_1, j_1)$.} $\mathcal{A}$'s query is the privacy challenge and it consists of two pairs of identities $(i_0, j_0)$ and $(i_1, j_1)$. The oracle builds $\mu$ new oracles $\{\pi_u^0\}_{u \in [\mu]}$. Let $\pi_{i_b}^0$ initialize the protocol with $\pi_{j_b}^0$ being the intended peer. After the initialization by $\pi_{i_b}^0$, the adversary is allowed to interfere the protocol execution. The transcript of the protocol execution is returned to $\mathcal{A}$, where $b$ is the random bit chosen by the challenger.
+
+\medskip\noindent\textbf{Security experiments.}
+We describe the three experiments ${\sf Exp}_{\mathsf{AKE},\adv}^{\mathsf{AUTH}}$, ${\sf Exp}_{\mathsf{AKE},\adv}^{\mathsf{IND}}$ and ${\sf Exp}_{\mathsf{AKE},\adv}^{\mathsf{Privacy}}$ as follows.
+The security experiment $\mathsf{Exp}^{\mathsf{X}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$, where $\mathsf{X} \in \{\mathsf{AUTH}, \mathsf{IND}, \mathsf{Privacy}\}$, is played between challenger $\mathcal{C}$ and adversary $\mathcal{A}$.
+
+\begin{enumerate}
+    \item $\mathcal{C}$ runs $\mathsf{AKE.Setup}$ to get AKE public parameter $pp_{\mathsf{AKE}}$.
+    \item For each party $P_i$, $\mathcal{C}$ runs $\mathsf{AKE.Gen}(pp_{\mathsf{AKE}}, i)$ to get the long-term key pair $(pk_i, sk_i)$. Next it chooses a random bit $b \gets \$ \{0, 1\}$ and provides $\mathcal{A}$ with the public parameter $pp_{\mathsf{AKE}}$ and the list of public keys $\mathsf{PKList} := \{pk_i\}_{i \in [\mu]}$.
+    \item $\mathcal{A}$ has access to oracles $\mathsf{Send}$, $\mathsf{Respond}$, $\mathsf{Corrupt}$, $\mathsf{RegisterCorrupt}$, $\mathsf{SessionKeyReveal}$, $\mathsf{TestKey}$, $\mathsf{TestPrivacy}$ by issuing queries in an adaptive way. Note that $\mathcal{A}$ can issue only one query either to $\mathsf{TestKey}$ or to $\mathsf{TestPrivacy}$, but not both. The oracles will reply the corresponding answers to $\mathcal{A}$ as long as the queries lead no trivial attacks.
+    \item At the end of the experiment, $\mathcal{A}$ terminates with an output $b^*$.
+    \item If $b^* = b$, the experiment returns $1$; otherwise the experiment returns $0$.
+\end{enumerate}
+
+\paragraph{Experiment $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$.} If $\mathcal{A}$ ever queried oracle $\mathsf{TestKey}$ (only once), then $\mathsf{Exp}^{\mathsf{X}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} = \mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$, which is the experiment for forward security of session key. Through $\mathsf{TestKey}$, adversary $\mathcal{A}$ obtains a real session key $k^s_i$ of target oracle $\pi^s_i$ or a random key. The forward security of session key requires that it is hard for any PPT $\mathcal{A}$ to distinguish the two cases.
+
+\paragraph{Experiment $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$.} If $\mathcal{A}$ ever queried oracle $\mathsf{TestPrivacy}$ (only once), then $\mathsf{Exp}^{\mathsf{X}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} = \mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$, which is the experiment for forward privacy of user identity. Through $\mathsf{TestPrivacy}$, $\mathcal{A}$ obtains a protocol transcript, which is either the interaction of $\pi^0_{i_0}$ and $\pi^0_{j_0}$ or the interaction of $\pi^0_{i_1}$ and $\pi^0_{j_1}$. The forward privacy requires that it is hard for any PPT $\mathcal{A}$ to distinguish the two cases.
+
+\paragraph{Experiment $\mathsf{Exp}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$.} If $\mathcal{C}$ checks whether event $\mathsf{WinAuth}$ happens ($\mathsf{WinAuth}$ is defined in Def.~\ref{def:auth}) at the end of the experiment (either $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ or $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$), this experiment is also regarded as $\mathsf{Exp}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$, which is the experiment for authenticity. Roughly speaking, the authenticity of AKE requires that if an oracle $\pi^s_i$ accepts a session key, then there must exist a unique oracle $\pi^t_j$ such that the two oracles have essentially established partnership. Meanwhile, the authenticity makes sure that replay attacks are prevented in the sense that no oracle can make two distinct oracles accepts.
+
+Details of the three experiments are given in Figure~\ref{fig:security-experiments}.
+
+To precisely describe the security notions for AKE, we have to forbid some trivial attacks by $\mathcal{A}$. To clearly describe trivial attacks, we first define partner.
+
+\begin{defn}[Partner] \label{def:partner}
+We say that an oracle $\pi^s_i$ is partnered to $\pi^t_j$, denoted as $\mathsf{Partner}(\pi^s_i \leftarrow \pi^t_j)$, if the following requirements hold:
+\begin{itemize}
+    \item $\pi^s_i$ accepts with $\Psi^s_i = \mathsf{accept}$ and $\mathsf{Pid}^s_i = j$.
+    \item Upon the time $\pi^s_i$ accepts, the transcript of $\pi^s_i$ is consistent with that of $\pi^t_j$, i.e., the outputs of $\pi^s_i$ are the inputs of $\pi^t_j$, and vice verse.
+\end{itemize}
+We write $\mathsf{Partner}(\pi^s_i \leftrightarrow \pi^t_j)$ if $\mathsf{Partner}(\pi^s_i \leftarrow \pi^t_j)$ and $\mathsf{Partner}(\pi^t_j \leftarrow \pi^s_i)$.
+\end{defn}
+
+We will keep track of the following variables for each party $P_i$ and oracle $\pi^s_i$:
+\begin{itemize}
+    \item $\mathsf{crp}_i$: whether user $i$ is corrupted.
+    \item $\mathsf{Aflags}^s_i$: whether the intended partner is corrupted when $\pi^s_i$ accepts.
+    \item $\mathsf{kRevs}^s_i$: whether the session key $k^s_i$ was revealed.
+    \item $\mathsf{T}^s_i$: whether $\pi^s_i$ was tested.
+    \item $\mathsf{Tid}$: whether oracle $\mathsf{TestPrivacy}$ is queried.
+    \item $\mathsf{Tkey}$: whether oracle $\mathsf{TestKey}$ is queried.
+\end{itemize}
+
+For forward security for session key, we identify three trivial attacks.
+
+\begin{description}
+    \item[TA1] Suppose that when user $i$ (formalize by $\pi^s_i$) accepts a session key $k^s_i$, its partner $j$ (formalize by $\pi^t_j$) has already been corrupted by $\mathcal{A}$, then it is quite possible that $\mathcal{A}$ impersonated $j$ to obtain the shared session key $k^s_i$. In this case $k^s_i$ cannot be tested by $\mathsf{TestKey}(i, s)$, otherwise, it will be a trivial attack.
+    \item[TA2] If a session key $k^s_i$ is accepted by user $i$ (formalized by $\pi^s_i$) and is also revealed to $\mathcal{A}$, then $k^s_i$ cannot be tested, otherwise, it will be a trivial attack.
+    \item[TA3] If two users (formalize by oracles $\pi^s_i$ and $\pi^t_j$) are partnered with each other and session key $k^s_i$ of $\pi^s_i$ is revealed to $\mathcal{A}$, then session key $k^t_j$ of $\pi^t_j$ cannot be tested due to $k^s_i = k^t_j$. Otherwise, it will be a trivial attack.
+\end{description}
+
+For the forward privacy for user identity, we identify three trivial attacks.
+
+\begin{description}
+    \item[TA4] If user $i$ is corrupted, then the adversary is able to impersonate the user in a AKE protocol after the corruption. After the protocol execution, the adversary will know the identity of its communicant peer. Hence, this is a trivial attack on privacy of AKE when testing $i$ with $\mathsf{TestPrivacy}$.
+    \item[TA5] The robustness of a AKE makes sure that only one target recipient $j$ is able to use its secret key $sk_j$ to correctly respond the first round message. If the secret key $sk_j$ of the target recipient is corrupted by $\mathcal{A}$, no privacy on $j$ is guaranteed. This is a trivial attack on forward privacy of robust AKE.
+    \item[TA6] If the adversary can observe the response of each user after the user receives the first message, then the identity of the responding user is clear to the adversary. Hence, this is also a trivial attack on the privacy of robust AKE. This trivial attack can be extended to any core part of the first message. To exclude this trivial attack, if the adversary sees the first round message, it is not allowed to feed a message containing the core part of the first round message to other users and observe their responses.
+\end{description}
+
+In Table~\ref{tab:trivial-attacks}, we list the above trivial attacks TA1--TA3 in $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ and trivial attacks TA4--TA6 in $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$.
+
+\begin{table}[htbp]
+\centering
+\caption{Trivial attacks TA1--TA3 for security experiment $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ and TA4--TA6 for security experiment $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$. Note that $\mathsf{Aflags}^s_i = \mathsf{false}$ is implicitly contained in TA2, TA3 because of TA1.}
+\label{tab:trivial-attacks}
+\vspace{1em}
+\begin{tabular}{|c|p{4.2cm}|p{6.8cm}|}
+\hline
+Types & Trivial attacks & Explanation \\
+\hline
+TA1 & 
+$\mathsf{T}^s_i = \mathsf{true} \land \mathsf{Aflags}^s_i = \mathsf{true}$ & 
+$\pi^s_i$ is tested but $\pi^s_i$'s partner is corrupted when $\pi^s_i$ accepts session key $k^s_i$. \\
+\hline
+TA2 & 
+$\mathsf{T}^s_i = \mathsf{true} \land \mathsf{kRevs}^s_i = \mathsf{true}$ & 
+$\pi^s_i$ is tested and its session key $k^s_i$ is revealed. \\
+\hline
+TA3 & 
+$\mathsf{T}^s_i = \mathsf{true} \land \mathsf{Partner}(\pi^s_i \leftrightarrow \pi^t_j) \land \mathsf{kRevs}^t_j = \mathsf{true}$ & 
+$\pi^s_i$ is tested, $\pi^s_i$ and $\pi^t_j$ are partnered to each other, and $\pi^t_j$'s session key $k^t_j$ is revealed. \\
+\hline
+TA4 & 
+$\mathsf{Tid} = \mathsf{true} \land (\mathsf{crp}_{i_0} = \mathsf{true} \lor \mathsf{crp}_{j_0} = \mathsf{true} \lor \mathsf{crp}_{i_1} = \mathsf{true} \lor \mathsf{crp}_{j_1} = \mathsf{true})$ & 
+When $\mathsf{TestPrivacy}(i_0, j_0, i_1, j_1)$ is queried, one of $i_0, j_0, i_1, j_1$ has been corrupted. \\
+\hline
+TA5 & 
+$\mathsf{Tid} = \mathsf{true} \land b^* = b \land (\mathsf{crp}_{j_0} = \mathsf{true} \lor \mathsf{crp}_{j_1} = \mathsf{true}) \land j_0 \neq j_1$ & 
+$\mathsf{TestPrivacy}(i_0, j_0, i_1, j_1)$ has been queried, and either $j_0$ or $j_1$ has been corrupted when checking $b^* = b$. \\
+\hline
+TA6 & 
+$\mathsf{Tid} = \mathsf{true} \land \mathcal{A}$ queried $\mathsf{Respond}(\mathsf{OList}, \mathsf{MsgList})$ s.t. $((j_0, *) \in \mathsf{OList} \lor (j_1, *) \in \mathsf{OList}) \land \mathsf{TfirstMsg} \cap \mathsf{MsgList} \neq \emptyset$ & 
+$\mathsf{TestPrivacy}(i_0, j_0, i_1, j_1)$ is queried. $\mathsf{TfirstMsg}$ is the first message in transcript. $\mathcal{A}$ sees the output $\pi^t_{j_0}(\mathsf{MsgList})$ or $\pi^t_{j_1}(\mathsf{MsgList})$ for some $t \in [\ell]$ via querying $\mathsf{Respond}$ with messages $\mathsf{MsgList}$ containing essential information of $\mathsf{TfirstMsg}$. \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Security Notions for AKE}
+
+\begin{defn}[Authentication of AKE] \label{def:auth}
+Let $\mathsf{WinAuth}$ denote the event that $\mathcal{A}$ breaks authentication in the security experiment $\mathsf{Exp}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ (see Figure~\ref{fig:security-experiments}). $\mathsf{WinAuth}$ happens iff $\exists (i, s) \in [\mu] \times [\ell]$, s.t.
+\begin{enumerate}
+    \item[(1)] $\pi^s_i$ is $\tau$-accepted.
+    \item[(2)] $P_j$ is $\hat{\tau}$-corrupted with $j := \mathsf{Pid}^s_i$ and $\hat{\tau} > \tau$.
+    \item[(3)] Either (3.1) or (3.2) or (3.3) happens. Let $j := \mathsf{Pid}^s_i$.
+    \begin{enumerate}
+        \item[(3.1)] There is no oracle $\pi^t_j$ that $\pi^s_i$ is partnered to.
+        \item[(3.2)] There exist two distinct oracles $\pi^t_j$ and $\pi^{t'}_{j'}$, to which $\pi^s_i$ is partnered.
+        \item[(3.3)] There exist two oracles $\pi^{s'}_{i'}$ and $\pi^t_j$ with $(i', s') \neq (i, s)$, such that both $\pi^s_i$ and $\pi^{s'}_{i'}$ are partnered to $\pi^t_j$.
+    \end{enumerate}
+\end{enumerate}
+The advantage of an adversary $\mathcal{A}$ in $\mathsf{Exp}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ is defined as
+\[
+\mathsf{Adv}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} := \Pr\left[\mathsf{Exp}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \Rightarrow 1\right] = \Pr_{\exists (i,s)}\left[(1) \land (2) \land \bigl((3.1) \lor (3.2) \lor (3.3)\bigr)\right].
+\]
+\end{defn}
+
+\begin{rmk}
+Given $(1) \land (2)$, (3.1) indicates a successful impersonation of $P_i$, (3.2) suggests one instance of $P_i$ has multiple partners, and (3.3) corresponds to a successful replay attack. Def.~\ref{def:auth} captures mutual explicit authentication since $\pi^s_i$ is either an initiator or a responder.
+\end{rmk}
+
+\begin{defn}[Forward Security for Session Key of AKE]
+In $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ (see Figure~\ref{fig:security-experiments}), Let $b^*$ be $\mathcal{A}$'s output. Then $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \Rightarrow 1$ iff $b^* = b$. The advantage of $\mathcal{A}$ in $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ is defined as
+\[
+\mathsf{Adv}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} := \left|\Pr\left[\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \Rightarrow 1\right] - 1/2\right|.
+\]
+Forward security for session key asks $\mathsf{Adv}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \leq \mathsf{negl}(\lambda)$ for all PPT $\mathcal{A}$.
+\end{defn}
+
+\begin{defn}[Forward Privacy for User Identity of AKE]
+Suppose that $\mathcal{A}$ queries $\mathsf{TestPrivacy}(i_0, j_0, i_1, j_1)$ and $b^*$ is $\mathcal{A}$'s output in $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ (see Figure~\ref{fig:security-experiments}). Define event $\mathsf{WinPrivacy}$ as $b^* = b$ and neither $j_0$ nor $j_1$ are corrupted unless $j_0 = j_1$ (i.e. $(\mathsf{crp}_{j_0} = \mathsf{false} \land \mathsf{crp}_{j_1} = \mathsf{false}) \lor j_0 \neq j_1$). Then $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \Rightarrow 1$ iff $\mathsf{WinPrivacy}$ happens. Forward privacy for user identity requires that for all PPT $\mathcal{A}$, its advantage function $\mathsf{Adv}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ satisfies
+\[
+\mathsf{Adv}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} := \left|\Pr\left[\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \Rightarrow 1\right] - 1/2\right| \leq \mathsf{negl}(\lambda).
+\]
+\end{defn}
+
+\begin{rmk}[Difference with security models in~\cite{SSL20,RSW19}]
+In the security models in~\cite{SSL20,RSW19}, the initiator only deals with one responding message with accept or reject and does not take into account other users' responses. This feature excludes the application of their AKE schemes in broadcast channels or similar scenarios. In our security model, the initiator receives and processes all messages from other users. This is especially important in the scenario where every user may give a response when not aware whether itself is the target recipient. More precisely, in our security model, the adversarial behaviors are reflected by the formalization that $\mathcal{A}$ designates a list of messages for $\pi^s_i$ to deal with by $\mathsf{Send}$ or $\mathsf{Respond}$ queries. In comparison, the security models in~\cite{SSL20,RSW19} only consider the case that $\pi^s_i$ deals with a single message and after that $\pi^s_i$ will stop responding to other messages (from other users).
+\end{rmk}
+
+\begin{rmk}[The best forward privacy for robust AKE]
+The best forward privacy for a robust AKE scheme is full forward privacy for initiator and semi-forward privacy for responder. The reason is as follows. If the responder $P_j$ is corrupted, the robustness of AKE enables the adversary to use the responder's secret key to test the first round messages in previous sessions so as to determine whether $P_j$ is the intended recipient. Therefore, this is the optimal forward privacy for robust AKE to achieve: full forward privacy for initiator (no matter initiator or responder is corrupted) and forward privacy for responder when initiator is corrupted.
+\end{rmk}
+
+\section{Security Proof}
+We prove that PQ-Aliro is secure in the Bellare-Rogaway-style AKE security model.
+%\newcommand{\etalchar}[1]{$^{#1}$}
+\bibliographystyle{splncs04}
+% \bibliography{cryptobib/abbrev0,cryptobib/cryptobib,ljhref}
+%\bibliography{abbrev3,ljhref}
+\bibliography{abbrev0,ljhref0}
+
+\appendix
+% \input{4-Dodis}
+
+\end{sloppypar}
+
+\end{document}

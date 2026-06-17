@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    tools:context=".PublicKeyActivity">
+
+    <!-- 顶部返回栏 -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/topAppBar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:elevation="8dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/colorSurface"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:title="公钥证书信息"
+        app:titleCentered="true"
+        app:titleTextColor="?attr/colorOnSurface" />
+
+    <!-- 内容区 -->
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="24dp"
+        android:clipToPadding="false"
+        android:clipChildren="false">
+
+        <LinearLayout
+            android:id="@+id/rootLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingTop="32dp"
+            android:paddingBottom="64dp">
+
+            <!-- 卡片容器 -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:elevation="8dp"
+                app:cardCornerRadius="20dp"
+                app:cardBackgroundColor="@color/cardBackground" >
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <!-- 公钥内容显示 -->
+                    <TextView
+                        android:id="@+id/contentView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:textColor="@color/cardTextColor"
+                        android:textIsSelectable="true"
+                        android:lineSpacingExtra="4dp"
+                        android:text="正在加载公钥..." />
+
+                    <!-- 复制按钮 -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/copyButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="复制公钥"
+                        android:layout_marginTop="16dp"
+                        app:cornerRadius="12dp"
+                        app:backgroundTint="@color/buttonBackground"
+                        app:iconTint="@color/buttonTextColor"
+                        android:textColor="@color/buttonTextColor"/>
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -1,0 +1,69 @@
+\subsection{APDU Message Mapping}
+\label{sec:apdu-mapping}
+
+The four logical messages of the PQ-Aliro Expedited Phase do not map directly
+to single ISO-DEP APDUs.  Because post-quantum cryptographic objects far exceed
+the 255-byte ISO/IEC~14443 APDU payload limit, every message must be
+\emph{fragmented} into a chain of command or response APDUs before transmission.
+On the Reader (command) side the implementation sets
+\texttt{MAX\_CHUNK\_SIZE = 200\,B} for AUTH0 (\texttt{INS = 0x80}) and AUTH1
+(\texttt{INS = 0x81}), and \texttt{MAX\_CHUNK\_SIZE = 255\,B} for LOADCERT
+(\texttt{INS = 0xD1}).
+Each intermediate chunk carries \texttt{P1 = 0x10} to signal that further data
+follows; the final chunk sets \texttt{P1 = 0x00}.
+On the User Device (response) side, \texttt{MAX\_APDU\_CHUNK = 240\,B}; the UD
+appends status word \texttt{0x61\,\textit{xx}} to every non-final response chunk
+and \texttt{0x9000} to the last.
+The Reader retrieves subsequent chunks with a \texttt{GET RESPONSE}
+(\texttt{INS = 0xC0}) command.
+
+Fields whose encoded length exceeds 255 bytes are wrapped in BER-TLV
+\emph{long-form} length encoding: a leading \texttt{0x82} byte followed by a
+two-byte big-endian length, adding 4 bytes of framing overhead per such field.
+This affects the ML-KEM-768 ephemeral public key (1\,184\,B $\to$ 1\,188\,B
+on the wire), the KEM ciphertext (1\,088\,B $\to$ 1\,092\,B), and all
+ML-DSA-65 signatures (3\,309\,B $\to$ 3\,313\,B).
+
+Table~\ref{tab:apdu} enumerates the six APDU-layer messages of a single
+PQ-Aliro transaction under the default ML-DSA-65 $\times$ ML-KEM-768
+configuration.
+
+\begin{table}[t]
+\caption{PQ-Aliro APDU message mapping (ML-DSA-65 $\times$ ML-KEM-768, default configuration)}
+\label{tab:apdu}
+\centering
+\small
+\begin{tabular}{llclr}
+\hline
+\textbf{Message} & \textbf{Direction} & \textbf{INS} & \textbf{Payload Summary} & \textbf{Chunk} \\
+\hline
+AUTH0 Command    & Reader$\to$UD & \texttt{0x80} &
+    KEM ephemeral $pk_e$ (1\,184\,B) $+$ \textit{trans\_id} (16\,B) $+$ \textit{reader\_id} (32\,B) &
+    200\,B \\
+AUTH0 Response   & UD$\to$Reader & ---           &
+    KEM ciphertext (1\,088\,B) $+$ UD noise (32\,B) &
+    240\,B \\
+LOADCERT Command & Reader$\to$UD & \texttt{0xD1} &
+    Profile0000 certificate ($\approx$5\,500\,B): $pk_{\mathrm{reader}}$ (1\,952\,B) $+$ signature (3\,309\,B) $+$ DN fields ($\approx$200\,B) &
+    255\,B \\
+LOADCERT Response & UD$\to$Reader & ---          &
+    Status word only (\texttt{0x9000}) &
+    --- \\
+AUTH1 Command    & Reader$\to$UD & \texttt{0x81} &
+    ML-DSA-65 transcript signature $\sigma_{\mathrm{reader}}$ (3\,309\,B) &
+    200\,B \\
+AUTH1 Response   & UD$\to$Reader & ---           &
+    $\mathrm{AEAD}(pk_{\mathrm{ud}} \mathbin{\|} \sigma_{\mathrm{ud}} \mathbin{\|} \mathit{bitmap})$,
+    plaintext 5\,273\,B $+$ GCM tag 16\,B $=$ 5\,289\,B &
+    240\,B \\
+\hline
+\end{tabular}
+\end{table}
+
+Under this configuration the six messages collectively require approximately
+75 APDUs and transfer $\approx$16.4\,KB of application-layer data, representing
+a $\sim\!14\times$ increase over the $\approx$1.2\,KB of the classical ECC
+instantiation.  The dominant contributors are the LOADCERT round
+($\approx$5\,500\,B, 22 APDUs) and the AUTH1 Response
+($\approx$5\,289\,B, 23 APDUs), both driven by the large size of ML-DSA-65
+public keys and signatures.

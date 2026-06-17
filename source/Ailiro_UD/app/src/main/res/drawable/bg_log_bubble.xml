@@ -1,0 +1,19 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- 柔和背景色 -->
+    <solid android:color="@color/logBubbleBackground"/>
+
+    <!-- 圆角 -->
+    <corners android:radius="12dp" />
+
+    <!-- 内边距 -->
+    <padding
+        android:left="16dp"
+        android:top="8dp"
+        android:right="16dp"
+        android:bottom="8dp" />
+
+    <!-- 可选淡边框，让气泡更有层次 -->
+    <stroke android:width="0.5dp" android:color="@color/logBubbleStroke" />
+</shape>

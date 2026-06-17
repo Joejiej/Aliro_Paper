@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.USE_CREDENTIALS" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature android:name="android.hardware.nfc.hce" android:required="true" />
+
+    <application
+        android:name=".AliroApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@drawable/ic_aliro_logo"
+        android:label="Aliro UD"
+        android:roundIcon="@drawable/ic_aliro_logo"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Ailiro_UD">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Ailiro_UD">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".PublicKeyActivity"
+            android:exported="false"
+            android:label="公钥信息" />
+
+        <activity
+            android:name=".AuthActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Ailiro_UD" />
+
+        <service
+            android:name=".MyHostApduService"
+            android:exported="true"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE"/>
+            </intent-filter>
+
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/apduservice"/>
+        </service>
+
+        <service android:name=".PQCSignatureService"
+            android:process=":pqc_signer"
+            android:isolatedProcess="false"
+            android:exported="false" />
+
+
+    </application>
+
+
+
+
+</manifest>

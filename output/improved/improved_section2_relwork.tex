@@ -1,0 +1,138 @@
+% -----------------------------------------------------------------------
+% §2 Related Work
+% -----------------------------------------------------------------------
+\section{Related Work}
+\label{sec:related}
+
+\subsection{Post-Quantum Key Exchange and Authentication}
+\label{sec:related:pqake}
+
+The standardisation of post-quantum cryptographic primitives has spurred a
+growing body of work on constructing efficient and provably secure authenticated
+key exchange (AKE) protocols from lattice-based building blocks.
+CRYSTALS-Kyber~\cite{EuroSP:BDKLLSSSS18}, the KEM underlying NIST FIPS~203
+(ML-KEM)~\cite{NIST:FIPS203}, provides IND-CCA2-secure encapsulation whose
+security reduces to the hardness of the Module-Learning-With-Errors (MLWE)
+problem.
+CRYSTALS-Dilithium~\cite{TCHES:DKLLSSS18}, standardised as ML-DSA (FIPS~204)~\cite{NIST:FIPS204},
+provides EUF-CMA-secure signatures whose security rests on the Module-Short-Integer-Solution
+(MSIS) and MLWE assumptions.
+Both schemes offer three security levels ($\{2, 3, 5\}$) aligned with NIST
+security categories II, III, and V, giving protocol designers a tunable
+security--overhead trade-off.
+
+NIST has also standardised Falcon (FIPS~206, FN-DSA)~\cite{NIST:FIPS206} as a
+signature scheme that achieves significantly smaller signatures than ML-DSA: at
+the 128-bit security level, a Falcon signature is approximately 4.8 times
+smaller than an ML-DSA-65 signature, though its key-generation procedure
+requires Gaussian sampling.
+For applications that can tolerate larger signatures in exchange for a
+different security foundation, SLH-DSA (FIPS~205)~\cite{NIST:FIPS205} provides
+a hash-based, stateless signature alternative that does not rely on lattice
+assumptions, with signature sizes ranging from 8 to 50~KB.
+
+KEMTLS~\cite{CCS:SchSteWig20} is a landmark engineering contribution that
+replaces the signature-based handshake of TLS~1.3 with KEM-based mutual
+authentication, eliminating handshake signatures from the critical path entirely.
+PQ-Aliro takes a complementary but distinct approach: rather than redesigning
+the handshake, it preserves the Aliro APDU command structure and substitutes
+only the underlying primitives, ensuring wire-level structural compatibility
+with existing access-control infrastructure.
+Crucially, KEMTLS targets TLS record-layer semantics over TCP/IP, where
+payload fragmentation is handled transparently by the transport layer; PQ-Aliro
+must instead work within the hard 255-byte ISO-DEP APDU boundary of the NFC
+physical layer, making byte-level communication overhead a primary design
+constraint rather than an afterthought.
+
+On the theoretical side, Fujioka et al.~\cite{ASIACCS:FSXY13} construct
+one-pass AKE protocols from one-way CCA-secure KEMs, establishing a principled
+framework for building AKE security from KEM security in the standard model.
+PQ-Aliro's authentication structure follows a similar spirit: the ML-KEM
+encapsulation provides session-key establishment, while ML-DSA certificates
+bind ephemeral keys to long-term identities.
+Related lattice-based AKE constructions with tight security reductions, such as
+the work of Pan et al.~\cite{C:PanWagZen23}, confirm that provably secure,
+tightly-reduced lattice AKE is achievable, reinforcing the theoretical
+foundations on which PQ-Aliro rests.
+Earlier work~\cite{PKC:FSXY12} demonstrated strongly secure AKE from lattice
+assumptions in the PKC setting, providing further evidence of the maturity of
+this research direction.
+These theoretical results, however, do not directly address the byte-level
+constraints that motivate the design of PQ-Aliro, which we examine in the
+context of AKE security models next.
+
+\subsection{AKE Security Models}
+\label{sec:related:models}
+
+The security of authenticated key exchange protocols is formalised through a
+hierarchy of increasingly powerful adversarial models.
+The foundational Bellare--Rogaway (BR93) model~\cite{C:BelRog93} establishes
+the core AKE framework: it defines session partnering via matching
+conversations, formalises adversarial queries including long-term-key
+corruption, and captures session-key indistinguishability and entity
+authentication.
+Canetti and Krawczyk~\cite{EC:CanKra01} extended this framework with the CK
+model, which additionally captures leakage of session-specific internal state
+and allows for more refined notions of forward secrecy.
+The eCK model of LaMacchia, Lauter, and Mityagin~\cite{PROVSEC:LaMLauMit07}
+pushes adversarial power further, simultaneously exposing long-term keys and
+ephemeral randomness to the adversary, and is widely regarded as one of the
+strongest standard AKE security definitions.
+
+PQ-Aliro's security analysis is cast in a BR-style model augmented with an
+identity-privacy experiment.
+The privacy dimension is motivated by the work of Lyu et al.~\cite{AC:LLHG22},
+who formalise privacy-preserving AKE in the standard model and prove that user
+identities can be kept unlinkable across sessions even against an active
+adversary.
+In the NFC access-control setting, tracking resilience is a practical
+requirement: a passive eavesdropper recording NFC transactions must not be able
+to link repeated accesses to a single credential holder.
+Our identity-privacy experiment, which tests whether an adversary can
+distinguish between two target users based on observed APDU transcripts,
+follows the definitional approach of~\cite{AC:LLHG22} adapted to the two-party
+door-access setting.
+The TLS~1.3 cryptographic analysis of Dowling et al.~\cite{JC:DFGS21} provides
+a further point of comparison for multi-stage AKE models, although its
+record-layer focus is orthogonal to our APDU-layer concerns.
+This emphasis on APDU-layer constraints naturally leads to the question of how
+PQC primitives perform on the constrained platforms typical of NFC access
+control.
+
+\subsection{PQC on Constrained Platforms}
+\label{sec:related:constrained}
+
+Deploying post-quantum cryptography in resource- or bandwidth-constrained
+environments remains an active area of research.
+Lima et al.~\cite{NIST3PQC:Lima21} evaluate the performance of Kyber KEM in a
+native Android mobile application, reporting that encapsulation and
+decapsulation are fast enough for interactive use on commodity smartphones.
+Their findings provide direct empirical support for the feasibility of
+mobile-side PQC in PQ-Aliro's Android HCE implementation.
+Post-quantum WireGuard~\cite{SP:HNSWZ21} integrates lattice-based KEMs into the
+WireGuard VPN protocol, demonstrating that the handshake overhead of
+NIST-round-3 KEMs can be absorbed by a constrained network protocol without
+breaking functional compatibility.
+
+The above results focus on IP-based transports or general mobile computing
+contexts.
+Despite these results, a significant gap remains.
+Existing work addresses PQC integration in TLS and VPN-class protocols, where
+message fragmentation is handled by TCP or UDP at the transport layer and
+byte-level overhead does not impose hard per-message limits.
+The NFC context is fundamentally different: ISO/IEC~14443 ISO-DEP APDUs carry
+at most 255 bytes of application data, and the 424~kbit/s physical-layer
+bit rate turns each kilobyte of overhead into measurable latency.
+To our knowledge, \emph{no prior work provides a complete, APDU-granular
+communication-overhead analysis for a PQC-upgraded NFC access-control
+protocol}.
+
+On the standards side, neither Aliro~1.0~\cite{CSA:Aliro10} nor CCC Digital
+Key~3.0~\cite{CCC:DigKey3}---the two leading specifications for smartphone-based
+digital access control---provides a post-quantum variant, a PQC migration
+roadmap, or a formal security proof for their AKE core.
+PQ-Aliro addresses all three dimensions---wire compatibility, byte-accurate
+overhead characterisation, and formal security proof---simultaneously: it
+delivers a wire-compatible PQC upgrade, a byte-accurate overhead
+characterisation across all nine ML-KEM/ML-DSA parameter combinations, and a
+formal proof of mutual authentication, forward secrecy, and identity privacy.

@@ -1,0 +1,228 @@
+% -----------------------------------------------------------------------
+% §8 Implementation
+% -----------------------------------------------------------------------
+\section{Implementation}
+\label{sec:implementation}
+
+This section describes the engineering realisation of PQ-Aliro across two
+platforms: an Android Host Card Emulation (HCE) application acting as the User
+Device (UD) and a PC-side NFC reader application.
+Both implementations are open source and written in Java.
+
+% -----------------------------------------------------------------------
+\subsection{System Architecture}
+\label{sec:impl:arch}
+
+The UD application runs on Android and exposes the PQ-Aliro applet via the
+Host Card Emulation framework (\texttt{HostApduService}).
+The Reader application runs on a standard PC equipped with an NFC reader
+peripheral and communicates with the UD over the ISO/IEC~14443 Type-A
+contactless channel.
+Both sides share a common message state machine that advances through four
+stages: SELECT $\to$ AUTH0 $\to$ LOADCERT $\to$ AUTH1\@.
+Each stage corresponds to a pair of command and response APDUs as detailed in
+Section~\ref{sec:apdu-mapping}.
+
+All post-quantum cryptographic operations are provided by BouncyCastle~1.78
+with the BCPQC extension.
+On the UD, the provider is registered at application start-up:
+\begin{verbatim}
+  Security.addProvider(new BouncyCastlePQCProvider());
+\end{verbatim}
+The same provider is used on the PC Reader.
+No native (JNI) code is required: both ML-KEM and ML-DSA are implemented
+entirely in pure Java within the BouncyCastle library, making the codebase
+portable across any JVM-capable platform.
+The UD manages long-term Dilithium key material independently of Android
+Keystore, since the Android Keystore API does not yet expose lattice-based
+algorithm support; all PQC key operations therefore remain in the application
+layer, with the Keystore used only to protect symmetric encryption keys (see
+Section~\ref{sec:impl:isolation}).
+
+% -----------------------------------------------------------------------
+\subsection{ML-KEM Integration}
+\label{sec:impl:mlkem}
+
+ML-KEM~\cite{NIST:FIPS203} is realised using the
+CRYSTALS-Kyber~\cite{EuroSP:BDKLLSSSS18} implementation in BouncyCastle BCPQC.
+The Reader generates a fresh ephemeral key pair for every transaction:
+
+\begin{verbatim}
+  KeyPairGenerator kpg =
+      KeyPairGenerator.getInstance("Kyber", "BCPQC");
+  kpg.initialize(KyberParameterSpec.kyber768, new SecureRandom());
+  KeyPair ephemeral = kpg.generateKeyPair();
+\end{verbatim}
+
+\noindent
+The 1\,184-byte public key is extracted as a raw byte array (the SPKI
+outer wrapper is stripped) and transmitted in the AUTH0 Command under TLV
+tag \texttt{0x87}.
+On the UD, the received bytes are reconstructed into a
+\texttt{KyberPublicKeyParameters} object via a helper
+\texttt{decodeKyberPublicKey(rawBytes)}, which re-attaches the algorithm
+identifier before passing the key to the JCA layer.
+
+Encapsulation on the UD uses a \texttt{KeyGenerator} with a
+\texttt{KEMGenerateSpec}:
+\begin{verbatim}
+  KeyGenerator kg =
+      KeyGenerator.getInstance("Kyber", "BCPQC");
+  kg.init(new KEMGenerateSpec(readerPublicKey, "AES"));
+  SecretKeyWithEncapsulation ske =
+      (SecretKeyWithEncapsulation) kg.generateKey();
+\end{verbatim}
+
+\noindent
+The 1\,088-byte encapsulation $c$ is returned in the AUTH0 Response under
+tag \texttt{0x86}.
+The 32-byte shared secret $S_e$ is immediately imported into the Android
+Keystore under alias \texttt{SSKey}; the raw byte array is then zeroed with
+\texttt{Arrays.fill(rawBytes, (byte) 0x00)} to prevent the secret from
+persisting on the JVM heap.
+The Reader performs decapsulation symmetrically via \texttt{KEMExtractSpec}
+to recover $S_e$, after which both parties derive the session key
+$\mathit{SK\_device}$ through the KDF chain described in
+Section~\ref{sec:design:kdf}.
+
+% -----------------------------------------------------------------------
+\subsection{ML-DSA Integration and Key Isolation}
+\label{sec:impl:isolation}
+
+ML-DSA~\cite{NIST:FIPS204} is realised from the CRYSTALS-Dilithium
+submission~\cite{TCHES:DKLLSSS18} in BouncyCastle BCPQC.
+
+\paragraph{Reader-side signing.}
+On the PC Reader, the long-term Dilithium private key is held in process
+memory throughout the application lifetime.
+Signing uses the standard JCA \texttt{Signature} interface:
+\begin{verbatim}
+  Signature signer =
+      Signature.getInstance("Dilithium", "BCPQC");
+  signer.initSign(readerPrivateKey);
+  signer.update(transcriptBytes);
+  byte[] sigma = signer.sign();
+\end{verbatim}
+
+\paragraph{UD-side key isolation.}
+The UD cannot safely hold the Dilithium private key in the main application
+process.
+The root cause is that \texttt{DilithiumPrivateKeyParameters} does not
+implement \texttt{javax.security.auth.Destroyable} in BouncyCastle~1.78;
+calling \texttt{destroy()} leaves the key material on the JVM heap until the
+garbage collector decides to overwrite the memory region, with no timing
+guarantee.
+A compromised main process could therefore read the private key from heap
+memory at any point between key generation and GC collection.
+
+To eliminate this attack surface, the UD delegates all Dilithium signing to a
+dedicated \texttt{PQCSignatureService} that is declared with the Android
+manifest attribute \texttt{android:isolatedProcess="true"}.
+An isolated process runs in a separate Linux process with a distinct address
+space, a separate UID, and no file-system access beyond its own
+content-provider interface.
+The main process sends the message bytes to be signed over a Binder IPC
+interface; \texttt{PQCSignatureService} loads the encrypted private key (see
+below), performs the signing operation entirely within its own address space,
+returns the 3\,309-byte signature over the same Binder channel, and
+immediately calls \texttt{Process.killProcess(Process.myPid())} to terminate
+itself.
+Because the entire lifecycle of the isolated process---from private key
+loading to process exit---is bounded to a single signing call, the Dilithium
+private key material never appears in the main application's address space and
+is forcibly reclaimed by the OS when the isolated process terminates.
+
+\paragraph{Persistent key storage.}
+The Dilithium private key cannot be stored in Android Keystore directly.
+Instead, it is stored in \texttt{SharedPreferences} encrypted under AES-256-GCM:
+the raw private key bytes are encrypted once at provisioning time
+(\texttt{KEY\_KYB\_PRIV\_CT} stores the ciphertext, \texttt{KEY\_KYB\_PRIV\_IV}
+stores the GCM IV), and the 256-bit AES wrapping key is held in Android
+Keystore, which provides hardware-backed protection on devices with a Trusted
+Execution Environment.
+The isolated process retrieves and decrypts the private key on each invocation,
+uses it exactly once, then discards it along with the process.
+
+% -----------------------------------------------------------------------
+\subsection{NFC Fragmentation and Asynchronous Signing}
+\label{sec:impl:frag}
+
+\paragraph{APDU fragmentation.}
+As described in Section~\ref{sec:apdu-mapping}, PQ-Aliro payloads must be
+split into chains of APDUs to respect the ISO/IEC~14443 ISO-DEP frame limit.
+The Reader sends AUTH0 and AUTH1 command chunks of at most 200 bytes, and
+LOADCERT chunks of at most 255 bytes.
+The UD sends response chunks of at most 240 bytes.
+Fields longer than 255 bytes are encoded with the BER-TLV long-form length
+prefix \texttt{0x82\,\textit{len\_hi}\,\textit{len\_lo}}, adding 4 bytes of
+overhead per affected field.
+This encoding is applied to the ML-KEM-768 ephemeral public key (tag
+\texttt{0x87}), the KEM ciphertext (tag \texttt{0x86}), all ML-DSA-65
+public keys (tags \texttt{0x5A}), and all ML-DSA-65 signatures (tag
+\texttt{0x9E}) in both AUTH1 Command and AUTH1 Response.
+
+\paragraph{Asynchronous signing to prevent HCE deadlock.}
+Android's HCE framework invokes \texttt{processCommandApdu()} on a dedicated
+system thread.
+If this callback blocks on a synchronous Binder call to an isolated process,
+the system-thread call stack is held indefinitely: the Reader's NFC controller
+times out the APDU exchange, and Android may trigger an Application Not
+Responding (ANR) dialog.
+To avoid this, the UD adopts a non-blocking response strategy for the AUTH1
+Command.
+Upon receiving the final chunk of AUTH1, \texttt{processCommandApdu()} spawns
+a background thread to perform the Binder-based signing call and immediately
+returns the two-byte response \texttt{0x61\,0x00} (``more data available, zero
+bytes ready'') to the NFC system thread, releasing it at once.
+The Reader interprets \texttt{0x61\,\textit{xx}} as a continuation indicator
+and enters a polling loop, sending \texttt{GET RESPONSE} (\texttt{INS = 0xC0})
+commands at regular intervals.
+Once the background signing thread completes and writes the fully assembled
+AUTH1 Response into the \texttt{responseQueue}, the next \texttt{GET RESPONSE}
+retrieves the first 240-byte chunk, with subsequent \texttt{GET RESPONSE}
+commands collecting the remaining 22 chunks.
+
+\paragraph{AEAD and IV management.}
+The AUTH1 Response payload is protected by AES-256-GCM using the session key
+$\mathit{SK\_device}$.
+The GCM IV is derived as the 12-byte value
+$\texttt{0x00\,00\,00\,00\,00\,00\,00\,01} \mathbin{\|} \mathit{ctr}$,
+where $\mathit{ctr}$ is a 4-byte big-endian counter initialised to 1 and
+incremented for each subsequent AEAD invocation within a session.
+The IV is not transmitted over NFC; both parties derive it independently from
+the shared counter state.
+The 16-byte GCM authentication tag is appended to the ciphertext, yielding
+a 5\,289-byte AUTH1 Response payload.
+All citation to the Aliro~1.0 specification~\cite{CSA:Aliro10} for the
+APDU command structure and status-word conventions has been preserved
+throughout this implementation.
+
+% -----------------------------------------------------------------------
+\subsection{End-to-End Testing}
+\label{sec:impl:testing}
+
+The implementation is validated by a comprehensive end-to-end test suite
+that exercises all nine PQC parameter combinations:
+Dilithium$\{2,3,5\} \times$ Kyber$\{512,768,1024\}$.
+The test harness runs entirely in-memory: the PC-side Reader and the Android
+HCE logic are instantiated within the same JVM process, with a byte-array
+channel substituting for the physical NFC interface.
+This removes the need for real NFC hardware and makes the tests fully
+reproducible in a standard CI environment.
+
+Each test configuration exercises 20 assertions covering: (i) KEM
+correctness---that the shared secret $S_e$ recovered by the Reader via
+\texttt{KEMExtractSpec} matches the value encapsulated by the UD; (ii)
+transcript hash consistency---that $\mathit{transAH0} =
+\mathrm{SHAKE256\text{-}512}(\mathit{AUTH0\_cmd} \mathbin{\|} \mathit{AUTH0\_resp})$
+is identical on both sides; (iii) KDF consistency---that
+$\mathit{SK\_device}$ derived by both parties is identical;
+(iv) AEAD round-trip correctness; (v) ML-DSA signature verification in both
+directions (Reader signature verified by UD, UD signature verified by Reader);
+and (vi) serialisation integrity of all TLV fields across the fragmentation
+and reassembly pipeline.
+All 20 assertions pass across all nine parameter combinations, confirming
+the correctness of the implementation for the full range of NIST security
+levels supported by PQ-Aliro~\cite{NIST3PQC:Lima21}.
+
+

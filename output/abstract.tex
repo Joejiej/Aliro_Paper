@@ -1,0 +1,21 @@
+\begin{abstract}
+The widespread deployment of quantum computers threatens the long-term confidentiality and
+authenticity guarantees of classical public-key cryptography, placing security-critical
+infrastructure such as NFC-based physical access control at risk.
+Aliro 1.0, the CSA standard for NFC/BLE/UWB access control, relies exclusively on
+elliptic-curve primitives—ECDH key agreement and ECDSA signatures over P-256—that are
+vulnerable to Shor's algorithm.
+We present \emph{PQ-Aliro}, a post-quantum adaptation of Aliro that replaces ECDH with
+ML-KEM-768 (CRYSTALS-Kyber) and ECDSA with ML-DSA-65 (CRYSTALS-Dilithium) while
+preserving the original three-round structure (AUTH0 / LOADCERT / AUTH1), the HKDF-based
+session-key derivation (HMAC-SHA256 + HKDF-Expand), and AES-256-GCM message encryption.
+Security analysis in a Bellare--Rogaway-style model confirms mutual authentication,
+forward secrecy, and identity privacy under the hardness of ML-KEM and ML-DSA.
+A full prototype is implemented on Android HCE and a PC NFC reader using BouncyCastle 1.78
+BCPQC; an end-to-end test suite of 20 assertions covering 9 PQC configurations passes
+without error.
+The default configuration incurs approximately 16.4 KB across 75 APDUs—roughly 14 times
+the ECC baseline—while a \emph{key\_slot} caching optimisation reduces overhead to 11.2 KB;
+the lightest viable configuration (D2$\times$K512) achieves 11.9 KB, confirming practical
+deployment over a standard ISO 14443 NFC channel.
+\end{abstract}

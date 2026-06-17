@@ -1,0 +1,223 @@
+% -----------------------------------------------------------------------
+% §9 Evaluation
+% -----------------------------------------------------------------------
+\section{Evaluation}
+\label{sec:evaluation}
+
+We evaluate PQ-Aliro along three complementary axes: the raw communication
+overhead introduced by post-quantum cryptographic primitives, the resulting
+NFC transmission latency, and the security-level vs.\ overhead trade-off
+across all nine parameter combinations.  All byte counts are derived from
+static analysis of the implemented APDU message structures; no physical
+testbed measurement is required for the core overhead figures, though we
+identify empirical validation as future work.
+
+%-----------------------------------------------------------------------
+\subsection{Communication Overhead Analysis}
+\label{sec:eval:overhead}
+
+\paragraph{Methodology.}
+We adopt the following counting conventions throughout this section.
+(1)~\emph{Application-layer bytes} denote the TLV payload body, excluding
+APDU command headers and status words.
+(2)~\emph{Link bytes} add the per-frame framing cost: 6\,B per command
+APDU (CLA\,$\|$\,INS\,$\|$\,P1\,$\|$\,P2\,$\|$\,Lc\,$\|$\,Le) and 2\,B
+status word per response APDU (SW1\,$\|$\,SW2, appended by Android HCE
+automatically).
+(3)~NFC physical-layer overhead—PCB octets, CRC, and SOF/EOF framing—is
+not counted, so the figures represent an \emph{upper bound on useful
+payload} at the ISO-DEP layer~\cite{CSA:Aliro10}.
+(4)~The LOADCERT payload size is an estimate; the actual value varies
+$\pm$10\% with the X.500 Distinguished Name lengths in the Reader
+certificate.
+(5)~The AES-GCM IV (12\,B) is derived from a counter and is never
+transmitted on the wire, so it does not contribute to link bytes.
+
+A notable source of per-field overhead is the BER-TLV long-form length
+encoding.  Any field whose encoded length exceeds 255\,B requires a
+three-byte length header (\texttt{0x82}\,$\|$\,\textit{len\_hi}\,$\|$\,\textit{len\_lo})
+instead of one byte, contributing 4\,B of tag-length overhead per field.
+Since every PQC object—Kyber public keys ($\ge 800$\,B), ciphertexts
+($\ge 768$\,B), and Dilithium public keys ($\ge 1312$\,B) and signatures
+($\ge 2420$\,B)—exceeds this threshold, each such field incurs this
+penalty.
+
+\paragraph{Default configuration: ML-DSA-65 $\times$ ML-KEM-768.}
+Table~\ref{tab:overhead_default} breaks down the communication overhead for
+the default parameter set (Dilithium3 $\times$ Kyber768, NIST Security
+Level~3~\cite{NIST:FIPS203,NIST:FIPS204}) across the six logical
+message exchanges of the Expedited flow.
+
+\begin{table}[t]
+\centering
+\caption{Per-phase communication overhead for the default PQ-Aliro
+configuration (ML-DSA-65 $\times$ ML-KEM-768, NIST Level~3).
+Chunk sizes: Reader\,$\le$\,200\,B/APDU, UD\,$\le$\,240\,B/APDU.}
+\label{tab:overhead_default}
+\begin{tabular}{lrrr}
+\hline
+\textbf{Message} & \textbf{APDUs} & \textbf{App.\ bytes} & \textbf{Link bytes} \\
+\hline
+AUTH0 Command   &  7   & 1{,}250   & 1{,}292   \\
+AUTH0 Response  &  5   & 1{,}126   & 1{,}136   \\
+LOADCERT Command & $\approx$22 & $\approx$5{,}500 & $\approx$5{,}632 \\
+LOADCERT Response &  1  &       2   &       4   \\
+AUTH1 Command   & 17   & 3{,}316   & 3{,}418   \\
+AUTH1 Response  & 23   & 5{,}289   & 5{,}335   \\
+\hline
+\textbf{Total}  & $\mathbf{\approx 75}$ & $\mathbf{\approx 16{,}483}$ & $\mathbf{\approx 16{,}817 \approx 16.4\,KB}$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\paragraph{Comparison with ECC Aliro.}
+The classical ECC Aliro flow (Curve P-256) transfers approximately 1.2\,KB
+per transaction: an EC ephemeral public key of 65\,B, an ECDSA signature of
+roughly 72\,B, and the long-term certificate.  PQ-Aliro (D3\,$\times$\,K768)
+incurs approximately $16.4/1.2 \approx \mathbf{14\times}$ more link bytes.
+The dominant contributors are the Dilithium3 public key (1{,}952\,B,
+$\approx$30$\times$ the 65\,B EC key) and the Dilithium3 signature
+(3{,}309\,B, $\approx$46$\times$ the 72\,B ECDSA signature); the Kyber768
+ciphertext (1{,}088\,B) is approximately 17$\times$ larger than an ECDH
+ephemeral point.  The single largest contributing phase is LOADCERT, which
+alone accounts for approximately 5.5\,KB ($\approx$33\% of the total), as
+it must transmit the Reader's complete Dilithium certificate.
+
+\paragraph{LOADCERT elimination.}
+When the User Device already caches the Reader's certificate (via a
+\texttt{key\_slot} index or pre-provisioning), the LOADCERT exchange can be
+skipped entirely, saving approximately 22\,APDUs and 5.5\,KB.  Total
+overhead drops to approximately 52\,APDUs / 11.2\,KB—a 32\% reduction
+that largely closes the gap with the D2 configurations while maintaining
+NIST Level~3 security.
+
+\paragraph{All parameter combinations.}
+Table~\ref{tab:overhead_configs} summarises the nine ML-DSA/ML-KEM parameter
+combinations.  Within each Dilithium tier, Kyber variants account for a
+modest 0.7–1.7\,KB spread; crossing Dilithium tiers (D2 $\to$ D3 $\to$ D5)
+introduces 4–5\,KB jumps, driven entirely by the growth in Dilithium public
+key and signature sizes~\cite{NIST:FIPS204}.
+
+\begin{table}[t]
+\centering
+\caption{Communication overhead for all nine PQC parameter combinations
+(with LOADCERT).  Security levels follow NIST PQC standards~\cite{NIST:FIPS203,NIST:FIPS204}.}
+\label{tab:overhead_configs}
+\begin{tabular}{lccc}
+\hline
+\textbf{Configuration} & \textbf{NIST Level} & \textbf{Total APDUs} & \textbf{Total bytes} \\
+\hline
+ML-DSA-44 $\times$ ML-KEM-512  & 2 &  55 & $\approx$11.9\,KB \\
+ML-DSA-44 $\times$ ML-KEM-768  & 2 &  58 & $\approx$12.6\,KB \\
+ML-DSA-44 $\times$ ML-KEM-1024 & 2 &  62 & $\approx$13.5\,KB \\
+ML-DSA-65 $\times$ ML-KEM-512  & 3 &  72 & $\approx$15.8\,KB \\
+\textbf{ML-DSA-65 $\times$ ML-KEM-768} & \textbf{3} & \textbf{75} & $\mathbf{\approx}$\textbf{16.4\,KB} \\
+ML-DSA-65 $\times$ ML-KEM-1024 & 3 &  79 & $\approx$17.3\,KB \\
+ML-DSA-87 $\times$ ML-KEM-512  & 5 &  95 & $\approx$21.6\,KB \\
+ML-DSA-87 $\times$ ML-KEM-768  & 5 &  98 & $\approx$22.3\,KB \\
+ML-DSA-87 $\times$ ML-KEM-1024 & 5 & 102 & $\approx$23.2\,KB \\
+\hline
+\end{tabular}
+\end{table}
+
+%-----------------------------------------------------------------------
+\subsection{NFC Transmission Latency}
+\label{sec:eval:latency}
+
+\paragraph{Physical-layer model.}
+ISO/IEC 14443 Type~A supports four bit rates: 106, 212, 424, and
+848\,kbit/s.  At 106\,kbit/s, block-level overhead and turnaround delays
+reduce the effective application throughput to approximately 8\,kB/s;
+higher rates scale quasi-linearly with modest additional framing
+costs~\cite{CSA:Aliro10}.  Android HCE typically negotiates 424\,kbit/s
+with compatible readers, making this the expected operating point for
+smartphone-based access control deployments.
+
+\paragraph{Transmission time estimates.}
+Table~\ref{tab:latency} reports estimated NFC transmission times for three
+representative parameter sets at three bit rates.  The values reflect APDU
+link bytes only and exclude Reader-side and UD-side cryptographic computation
+times.
+
+\begin{table}[t]
+\centering
+\caption{Estimated NFC transmission time (link bytes only, excluding
+cryptographic computation).  Values are theoretical estimates; physical
+CRC/PCB framing is not included.}
+\label{tab:latency}
+\begin{tabular}{lccc}
+\hline
+\textbf{Bit rate} & \textbf{D3$\times$K768 (16.4\,KB)} & \textbf{D2$\times$K512 (11.9\,KB)} & \textbf{D5$\times$K1024 (23.2\,KB)} \\
+\hline
+106\,kbit/s & $\approx$2.0\,s & $\approx$1.5\,s & $\approx$2.9\,s \\
+424\,kbit/s & $\approx$0.5\,s & $\approx$0.4\,s & $\approx$0.7\,s \\
+848\,kbit/s & $\approx$0.25\,s & $\approx$0.20\,s & $\approx$0.36\,s \\
+\hline
+\end{tabular}
+\end{table}
+
+\paragraph{Cryptographic computation overhead.}
+The transmission figures above must be augmented with on-device computation
+time.  On a mid-range Android device, ML-DSA-65 signature generation
+requires approximately 50–100\,ms and signature verification approximately
+5\,ms, consistent with results reported for the Kyber/Dilithium family on
+Android hardware~\cite{NIST3PQC:Lima21}.  ML-KEM encapsulation and
+decapsulation each contribute a further $<$5\,ms.  Combining transmission
+and computation, the total expected latency for the default D3$\times$K768
+configuration at 424\,kbit/s falls in the range of \textbf{0.6–1.5\,s}.
+
+\paragraph{User experience impact.}
+By comparison, classical ECC Aliro transfers approximately 1.2\,KB and
+completes in roughly 0.2\,s end-to-end at 424\,kbit/s.  PQ-Aliro therefore
+introduces a 3–7$\times$ latency increase.  At the lower end (0.6\,s), the
+additional delay is likely imperceptible during a normal door-tap gesture;
+at the upper end (1.5\,s), it approaches the user-experience threshold for
+access-control interactions, motivating the LOADCERT-elimination optimisation
+described in Section~\ref{sec:eval:overhead}.  We note that all values in
+Table~\ref{tab:latency} are theoretical estimates; empirical measurement on
+physical NFC hardware constitutes important future work.
+
+%-----------------------------------------------------------------------
+\subsection{Security Level vs.\ Overhead Trade-off}
+\label{sec:eval:tradeoff}
+
+The nine configurations in Table~\ref{tab:overhead_configs} span three
+NIST security levels and a 1.95$\times$ overhead range (11.9\,KB to
+23.2\,KB).  A Pareto analysis across the security–overhead space identifies
+the following deployment profiles.
+
+\paragraph{NIST Level~2 (D2 configurations, 11.9–13.5\,KB).}
+The D2$\times$K512 configuration achieves the minimum overhead of
+$\approx$11.9\,KB—a 27\% reduction relative to the default—while still
+meeting the NIST Level~2 security target~\cite{NIST:FIPS203,NIST:FIPS204}.
+This profile is suitable for deployments where transmission latency is
+critical (e.g., high-throughput turnstiles) and where the reduced margin
+against future cryptanalytic advances is acceptable within the organisation's
+threat model.
+
+\paragraph{NIST Level~3 (D3 configurations, 15.8–17.3\,KB).}
+The D3$\times$K768 configuration represents the Pareto-optimal balance
+between security and overhead.  It provides 128-bit post-quantum security
+for both the key-encapsulation and signature primitives, and its $\approx$16.4\,KB
+footprint is manageable at 424\,kbit/s.  We adopt this as the \emph{default}
+for PQ-Aliro~\cite{NIST:FIPS203,NIST:FIPS204}.
+
+\paragraph{NIST Level~5 (D5 configurations, 21.6–23.2\,KB).}
+The D5$\times$K1024 configuration offers the highest available security (256-bit
+post-quantum), at a cost of $+$41\% overhead relative to the default.  With
+an estimated 2.9\,s transmission time at 106\,kbit/s, this profile is
+impractical at the slowest NFC speed but fully viable at 424\,kbit/s
+($\approx$0.7\,s) and is recommended for high-assurance installations such
+as data-centre access control or government facilities.
+
+\paragraph{Summary.}
+Deployers can select the parameter set that best matches their threat
+model: D2$\times$K512 for latency-sensitive or resource-constrained
+environments, D3$\times$K768 as a balanced default, and D5$\times$K1024
+for maximum long-term security.  The \texttt{key\_slot} optimisation
+(Section~\ref{sec:eval:overhead}) orthogonally reduces overhead by
+$\approx$5.5\,KB across all tiers, and should be enabled whenever the
+deployment architecture permits Reader-certificate pre-provisioning on
+the User Device.
+
+

@@ -1,0 +1,48 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# 环境变量（含 API 密钥，绝不上传）
+.env
+
+# 大型二进制 / 临时文件
+*.whl
+*.zip
+*.dll
+*.pyd
+
+# Claude Code 本地会话数据
+.claude/
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# LaTeX 编译产物
+*.aux
+*.log
+*.bbl
+*.blg
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# 输出中的大型 PDF（保留 .tex 源文件）
+output/**/*.pdf
+PQ_Aliro_v2/*.pdf
+PQ_Aliro_extracted/

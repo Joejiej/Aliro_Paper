@@ -1,0 +1,42 @@
+% -----------------------------------------------------------------------
+% §11 Conclusion
+% -----------------------------------------------------------------------
+\section{Conclusion}
+
+This paper presented PQ-Aliro, the first complete post-quantum variant of the Aliro NFC
+access-control protocol~\cite{CSA:Aliro10}.
+Our design preserves the three-round Expedited Flow (AUTH0/LOADCERT/AUTH1), replacing
+the classical primitives with NIST-standardised counterparts: ECDH is superseded by
+ML-KEM-768 and ECDSA by ML-DSA-65~\cite{NIST:FIPS203,NIST:FIPS204},
+while session confidentiality is maintained by HKDF (HMAC-SHA256 + HKDF-Expand) and
+AES-256-GCM.
+Under a Bellare--Rogaway-style security model we proved that PQ-Aliro achieves mutual
+authentication, forward secrecy, and identity privacy.
+A full open-source implementation targeting Android HCE and a PC NFC Reader was
+developed using BouncyCastle 1.78 BCPQC, and an end-to-end test suite comprising
+20 assertions across nine PQC configurations passed without exception.
+
+The principal cost of this upgrade is communication overhead.
+The default D3$\times$K768 configuration exchanges approximately 16.4\,KB across
+75 APDUs, roughly $14\times$ the footprint of the original ECC-based flow
+(${\approx}1.2$\,KB), with the bulk of the expansion attributable to the larger public
+keys and signatures of ML-DSA-65.
+Enabling the \texttt{key\_slot} optimisation---which suppresses the LOADCERT round once
+a certificate is cached on the reader---reduces this to ${\approx}11.2$\,KB, a 32\%
+saving.
+Alternatively, the lighter D2$\times$K512 configuration reaches ${\approx}11.9$\,KB at
+NIST Security Level~2.
+At 424\,kbit/s NFC bit-rate, the projected end-to-end latency of 0.6--1.5\,s remains
+acceptable for the vast majority of physical-access scenarios.
+
+With NIST IR~8547~\cite{NIST:IR8547} mandating migration to post-quantum algorithms by
+2035, the urgency of hardening NFC access-control systems against harvest-now/decrypt-later
+attacks cannot be overstated.
+PQ-Aliro provides a concrete, standards-compliant migration path for deployments built on
+the Aliro~\cite{CSA:Aliro10} ecosystem.
+Future work will focus on empirical latency measurements on production NFC hardware,
+evaluation of Falcon-512 as a lighter signature alternative, and extension of the
+PQ-Aliro handshake to BLE and UWB transport channels already defined in the Aliro
+specification.
+
+

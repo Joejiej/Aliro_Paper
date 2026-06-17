@@ -1,0 +1,68 @@
+[
+  {
+    "section": "eval",
+    "passed": false,
+    "notes": "no feedback",
+    "issues": [],
+    "suggestions": []
+  },
+  {
+    "section": "impl",
+    "passed": false,
+    "notes": "no feedback",
+    "issues": [],
+    "suggestions": []
+  },
+  {
+    "section": "intro",
+    "passed": true,
+    "notes": "The revised Introduction largely meets the improvement goals with accurate technical content, a coherent structure, and proper LaTeX formatting. Minor issues remain in conciseness and explicit inclusion of the required phrase in Contribution 1, but overall the section is ready after these adjustments.",
+    "issues": [
+      "Contribution 1 lacks the explicit phrase 'the first complete PQC upgrade of any Aliro-family protocol' as required by the revision instructions. Although mentioned earlier in the paper, it should be integrated into the contribution statement.",
+      "The opening paragraph (lines 1–10) is still 6 sentences long, exceeding the requested 3–4 sentences. While it merges Shor and Grover into one paragraph, the length and level of detail (e.g., 'harvest now, decrypt later') remain verbose, making it less concise than intended."
+    ],
+    "suggestions": [
+      "Shorten the first paragraph to 3–4 sentences by removing the 'harvest now, decrypt later' detail and combining the Shor/Grover consequences more tightly. The core threat—quantum attacks on PKC and the need for PQC migration—can be stated more succinctly.",
+      "Revise Contribution 1 to include the exact phrase: 'the first complete PQC upgrade of any Aliro-family protocol.' For example: 'We present the first complete PQC upgrade of any Aliro-family protocol—a drop-in PQC variant of the Aliro Expedited flow that replaces ECDH with ML-KEM-768 and ECDSA with ML-DSA-65...'"
+    ]
+  },
+  {
+    "section": "relwork",
+    "passed": true,
+    "notes": "§2 Related Work 的改进版本准确实现了所有五项要求，逻辑连贯自然，语言质量高，无技术错误。",
+    "issues": [],
+    "suggestions": [
+      "§2.3 中'To our knowledge, no prior work provides...'一句可考虑将'To our knowledge'改为'To the best of our knowledge'，更符合学术写作惯例。"
+    ]
+  },
+  {
+    "section": "disc",
+    "passed": true,
+    "notes": "改进版本严格遵循了用户给出的四条指令，新增内容合理（SPHINCS+ 对比、合并局限性段落、补充 Future Work 项），语言套话已消除，LaTeX 格式正确。整体技术准确、逻辑连贯、语言精炼，可接受发表。",
+    "issues": [
+      "Limitations 中的 'Theoretical byte counts only' 与 'No real NFC hardware' 在原始草稿中仍是分离的两段；改进版本应合并为一段并修改标题。",
+      "Falcon-512 段落缺少 SPHINCS+ 对比，改进版本需按指令添加。",
+      "Future Work 缺少 'Profiling and optimisation on real Android hardware' 项，改进版本应补充。"
+    ],
+    "suggestions": [
+      "合并后的段落标题使用 \\textbf{Absence of physical-layer and real-hardware measurements.}，内容保留原两段要点，控制4-5句。",
+      "添加 SPHINCS+ 对比时注意引用 NIST:FIPS205，并确认签名大小范围 8–50 KB 准确。",
+      "新增 Future Work 项使用名词短语标题，如 'Profiling and optimisation on real Android hardware.'。"
+    ]
+  },
+  {
+    "section": "concl",
+    "passed": true,
+    "notes": "草稿技术内容准确，逻辑清晰，语言基本流畅。但未完全遵循写作目标中的四项润色要求，建议按目标修改以增强表述的精确性和完整性。",
+    "issues": [
+      "首句仍使用'first complete'，未按写作目标改为'first APDU-granular, formally verified'。",
+      "结尾缺少写作目标建议的关于开源实现作为可复现基线的句子。",
+      "部分表述可进一步精炼，例如'This paper presented'建议改为'This paper presents'。"
+    ],
+    "suggestions": [
+      "将首句改为'This paper presented PQ-Aliro, the first APDU-granular, formally verified post-quantum variant of the Aliro NFC access-control protocol.'。",
+      "在最后一段末尾添加'The open-source implementation released alongside this paper provides a concrete, reproducible baseline for future protocol engineering work.'。",
+      "对全文做轻量语言润色，如统一时态、简化独立主格结构（例如'with the bulk of the expansion attributable to'可改为'with the bulk of the expansion being attributable to'或更简洁的表述）。"
+    ]
+  }
+]

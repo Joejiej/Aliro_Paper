@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?attr/colorSurface"
+    android:padding="16dp">
+
+    <!-- 顶部工具栏 -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:elevation="6dp"
+        android:background="?attr/colorSurface"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:title="设备认证"
+        app:titleCentered="true"
+        app:titleTextColor="?attr/colorOnSurface"
+        app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge" />
+
+    <!-- 间隔 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="12dp" />
+
+    <!-- 操作按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/selectCertButton"
+        style="@style/Widget.MaterialComponents.Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="选择系统证书"
+        android:textSize="16sp"
+        android:paddingVertical="12dp"
+        android:fontFamily="sans-serif-medium"
+        app:cornerRadius="12dp"
+        app:icon="@drawable/ic_cert"
+        app:iconGravity="textStart"
+        app:iconPadding="8dp"
+        app:backgroundTint="?attr/colorPrimaryContainer"
+        app:iconTint="?attr/colorOnPrimaryContainer"
+        android:textColor="?attr/colorOnPrimaryContainer" />
+
+    <!-- 间隔 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="20dp" />
+
+    <!-- 日志显示区域 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="认证过程日志"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurface"
+        android:layout_marginBottom="8dp"
+        android:fontFamily="sans-serif-medium" />
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:elevation="3dp"
+        android:padding="0dp"
+        app:cardCornerRadius="12dp"
+        app:cardBackgroundColor="?attr/colorSurfaceVariant">
+
+        <ScrollView
+            android:id="@+id/logScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="16dp"
+            android:overScrollMode="always"
+            android:scrollbars="vertical">
+
+            <LinearLayout
+                android:id="@+id/logContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </ScrollView>
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- 状态显示 -->
+    <TextView
+        android:id="@+id/statusTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="状态：准备中..."
+        android:textSize="15sp"
+        android:textStyle="normal"
+        android:gravity="center"
+        android:layout_marginTop="16dp"
+        android:padding="8dp"
+        android:textColor="?attr/colorPrimary"
+        android:fontFamily="sans-serif-medium" />
+
+</LinearLayout>

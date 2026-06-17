@@ -1,0 +1,64 @@
+% -----------------------------------------------------------------------
+% §10 Discussion and Optimization
+% -----------------------------------------------------------------------
+\section{Discussion and Optimization}
+\label{sec:discussion}
+
+\subsection{Optimization Strategies}
+\label{subsec:optimization}
+
+The default PQ-Aliro configuration (ML-DSA-65 $\times$ ML-KEM-768) incurs approximately 16.4\,KB across 75 APDU exchanges---roughly 14$\times$ the overhead of a classical ECC-based Aliro flow. We identify four complementary strategies that can substantially reduce this cost.
+
+\textbf{LOADCERT Elimination via \texttt{key\_slot}.}
+The Aliro 1.0 specification~\cite{CSA:Aliro10} defines a \texttt{key\_slot} field that allows a User Device (UD) to reference a Reader certificate already stored in its credential store, bypassing the explicit \texttt{LOADCERT} exchange. Eliminating LOADCERT removes approximately 22 APDU exchanges and saves $\sim$5.5\,KB, reducing the total footprint to $\sim$11.2\,KB across 52 APDUs---a 32\,\% reduction. This strategy is well-suited to enterprise deployments where a fixed set of Readers is trusted and their Dilithium certificates can be pre-provisioned at enrollment time. The trade-off is operational: it requires an out-of-band certificate provisioning infrastructure and complicates Reader certificate rotation. Nevertheless, for high-frequency access scenarios such as corporate office doors, the latency benefit of skipping a 22-round sub-flow is significant.
+
+\textbf{Downgrading to NIST Security Level~2.}
+FIPS~203~\cite{NIST:FIPS203} and FIPS~204~\cite{NIST:FIPS204} both specify parameter sets at Security Levels 2, 3, and 5. Switching from the Level-3 combination (ML-DSA-65 $\times$ ML-KEM-768) to the Level-2 combination (ML-DSA-44 $\times$ ML-KEM-512) yields a total overhead of $\sim$11.9\,KB---a 27\,\% saving over the default. This configuration is appropriate for lower-risk deployments (e.g., gym or library access) where the quantum threat horizon is more distant, but it is unsuitable for high-assurance use cases such as data-centre entry or government facilities, where Level-3 or Level-5 protection is warranted.
+
+\textbf{Falcon-512 as an Alternative Signature Scheme.}
+Falcon-512 produces signatures of approximately 690\,bytes, compared with 3309\,bytes for ML-DSA-65 under identical security guarantees. If both signature fields in the protocol---the Reader's \texttt{AUTH1} signature and the UD's \texttt{AUTH1 Response} signature---are replaced with Falcon-512, the two fields together save approximately 5.2\,KB. Combined with the LOADCERT elimination strategy, the cumulative overhead can approach $\sim$11.2\,KB. Falcon has been standardised by NIST as FIPS~206 (FN-DSA), lending it formal standing. However, Falcon key generation requires lattice Gaussian sampling, which is computationally demanding and has not yet been thoroughly benchmarked on mid-range Android devices. We therefore treat Falcon-512 integration as a promising but unvalidated direction for future work.
+
+\textbf{Profile0000 Certificate Compression.}
+The Aliro Profile0000 certificate uses a custom DER encoding that includes full Distinguished Name (DN) fields totalling approximately 200\,bytes. In scenarios where a \texttt{key\_slot} index is used in the \texttt{AUTH1 Response} instead of transmitting the UD's Dilithium public key inline, an additional $\sim$1.9\,KB can be saved. Further compression of the DN fields or adoption of a compact certificate format would provide incremental gains without compromising the authentication semantics defined in the Aliro specification~\cite{CSA:Aliro10}.
+
+\subsection{Limitations}
+\label{subsec:limitations}
+
+Several important caveats apply to the results presented in this paper.
+
+\textbf{Theoretical byte counts only.}
+All communication overhead figures are derived from static APDU-layer byte accounting and do not include ISO/IEC~14443 physical-layer framing (PCB bytes, CRC-16, SOF/EOF delimiters). Actual over-the-air data volumes will be marginally higher; the relative comparisons between configurations remain valid.
+
+\textbf{No real NFC hardware.}
+End-to-end protocol execution was validated in a software emulation environment: a PC-based Reader process communicating with an Android Emulator running the HCE stack. Real NFC hardware introduces RF field establishment latency, reader polling intervals, and device-specific RF stack overhead that are not captured by emulation. Latency figures for real deployments may differ from our estimates.
+
+\textbf{Estimated cryptographic timing.}
+The ML-DSA-65 signing time of 50--100\,ms cited in Section~\ref{sec:evaluation} is extrapolated from published benchmarks on comparable ARM processors; it has not been measured directly on the test device. Performance will vary with JVM warm-up state, concurrent background processes, and the specific Android version and security chip configuration of the target handset.
+
+\textbf{Certificate pre-provisioning complexity.}
+The LOADCERT-elimination optimisation assumes that the Credential Issuer can reliably pre-provision Reader certificates into each UD at enrollment time and keep them synchronised across certificate renewals. This requirement adds non-trivial infrastructure burden and may not be feasible in open-ended deployments where any compliant Reader should be able to interact with any UD without prior pairing.
+
+\textbf{Single transport protocol.}
+The current implementation and analysis cover NFC (ISO/IEC~14443) exclusively. The Aliro specification also defines BLE and UWB transport paths, each with distinct frame-size constraints and session-key derivation flows. The overhead impact of PQC on those transports is an independent open question.
+
+\subsection{Future Work}
+\label{subsec:futurework}
+
+Several directions extend the contributions of this paper.
+
+\textbf{Real hardware evaluation.}
+Measuring end-to-end protocol latency on commercial NFC-enabled smartphones and readers---including RF field setup time and Reader-side processing---would validate our theoretical estimates and surface implementation-specific bottlenecks.
+
+\textbf{Falcon-512 integration.}
+Implementing and benchmarking a Falcon-512 (FIPS~206) variant of PQ-Aliro on representative Android devices would determine whether the substantial signature-size advantage translates into acceptable key-generation latency in practice.
+
+\textbf{BLE and UWB transports.}
+Extending PQC integration to the Aliro BLE and UWB flows---particularly the derivation of BleSK and URSK session keys---would provide a complete picture of quantum-safe Aliro across all supported transports.
+
+\textbf{Interoperability with CCC Digital Key~3.0.}
+Exploring cross-specification interoperability with the CCC Digital Key 3.0 ecosystem~\cite{CCC:DigKey3} would clarify whether a unified PQC upgrade path is achievable across both standards, given their overlapping deployment contexts.
+
+\textbf{Key-slot provisioning protocol.}
+Designing and formalising a certificate pre-provisioning protocol that enables LOADCERT elimination at scale---with support for certificate rotation and revocation---would make this optimisation deployable in real enterprise access-control infrastructures.
+
+
