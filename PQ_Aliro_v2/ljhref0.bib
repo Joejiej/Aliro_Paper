@@ -1712,3 +1712,164 @@ doi={10.1007/978-981-96-4731-6\_11}
   doi       = {10.1007/978-3-030-88428-4\_33},
   note      = {Key RSW19 refers to the 2019 manuscript; published version appeared at ESORICS~2021},
 }
+
+@techreport{RFC5869,
+  author      = {Krawczyk, H. and Eronen, P.},
+  title       = {{HMAC-based Extract-and-Expand Key Derivation Function (HKDF)}},
+  type        = {RFC},
+  number      = {5869},
+  institution = {IETF},
+  year        = {2010},
+  url         = {https://www.rfc-editor.org/rfc/rfc5869}
+}
+
+@techreport{NIST:SP80038D,
+  author      = {Dworkin, Morris},
+  title       = {{Recommendation for Block Cipher Modes of Operation: Galois/Counter Mode (GCM) and GMAC}},
+  institution = {National Institute of Standards and Technology},
+  type        = {Special Publication},
+  number      = {800-38D},
+  year        = {2007},
+  doi         = {10.6028/NIST.SP.800-38D}
+}
+
+@techreport{NIST:FIPS202,
+  author      = {{National Institute of Standards and Technology}},
+  title       = {{SHA-3 Standard: Permutation-Based Hash and Extendable-Output Functions}},
+  institution = {NIST},
+  type        = {Federal Information Processing Standards Publication},
+  number      = {202},
+  year        = {2015},
+  doi         = {10.6028/NIST.FIPS.202}
+}
+
+@misc{ISOIEC14443,
+  key          = {ISO14443},
+  title        = {{Identification cards -- Contactless integrated circuit cards -- Proximity cards -- Part 4: Transmission protocol}},
+  organization = {International Organization for Standardization},
+  number       = {ISO/IEC 14443-4:2018},
+  year         = {2018}
+}
+
+@article{JC:FujOka13,
+  author  = {Fujisaki, Eiichiro and Okamoto, Tatsuaki},
+  title   = {Secure Integration of Asymmetric and Symmetric Encryption Schemes},
+  journal = {Journal of Cryptology},
+  year    = {2013},
+  volume  = {26},
+  number  = {1},
+  pages   = {80--101},
+  doi     = {10.1007/s00145-011-9114-1}
+}
+
+
+% ---- Entries added for §4/§6/§7 merge ----
+
+@InProceedings{PKC:SchSchLau20,
+  author =       "Sven Sch{\"a}ge and
+                  J{\"o}rg Schwenk and
+                  Sebastian Lauer",
+  title =        "Privacy-Preserving Authenticated Key Exchange and the Case of {IKEv2}",
+  pages =        "567--596",
+  editor =       pkc20ed,
+  booktitle =    pkc20name2,
+  volume =       pkc20vol2,
+  address =      pkc20addr,
+  month =        pkc20month,
+  publisher =    pkc20pub,
+  series =       mylncs,
+  year =         2020,
+  doi =          "10.1007/978-3-030-45388-6_20",
+}
+
+@InProceedings{EC:RogShr06,
+  author =       "Phillip Rogaway and
+                  Thomas Shrimpton",
+  title =        "A Provable-Security Treatment of the Key-Wrap Problem",
+  pages =        "373--390",
+  editor =       eurocrypt06ed,
+  booktitle =    eurocrypt06name,
+  volume =       eurocrypt06vol,
+  address =      eurocrypt06addr,
+  month =        eurocrypt06month,
+  publisher =    eurocrypt06pub,
+  series =       mylncs,
+  year =         2006,
+  doi =          "10.1007/11761679_23",
+}
+
+@Article{GolMicRiv88,
+  author =       "Shafi Goldwasser and
+                  Silvio Micali and
+                  Ronald L. Rivest",
+  title =        "A Digital Signature Scheme Secure Against Adaptive Chosen-message Attacks",
+  journal =      siamjc,
+  month =        apr,
+  year =         1988,
+  pages =        "281--308",
+  volume =       17,
+  number =       2,
+}
+
+@InProceedings{CCS:FisGun14,
+  author =       "Marc Fischlin and
+                  Felix G{\"u}nther",
+  title =        "Multi-Stage Key Exchange and the Case of {Google}'s {QUIC} Protocol",
+  pages =        "1193--1204",
+  editor =       ccs14ed,
+  booktitle =    ccs14name,
+  address =      ccs14addr,
+  month =        ccs14month,
+  publisher =    ccspub,
+  year =         2014,
+  doi =          "10.1145/2660267.2660308",
+}
+
+@article{DBLP:journals/rfc/rfc2104,
+  author       = {Hugo Krawczyk and
+                  Mihir Bellare and
+                  Ran Canetti},
+  title        = {{HMAC:} Keyed-Hashing for Message Authentication},
+  journal      = {{RFC}},
+  volume       = {2104},
+  pages        = {1--11},
+  year         = {1997},
+  url          = {https://doi.org/10.17487/RFC2104},
+  doi          = {10.17487/RFC2104},
+  timestamp    = {Tue, 14 May 2019 10:02:21 +0200},
+  biburl       = {https://dblp.org/rec/journals/rfc/rfc2104.bib},
+  bibsource    = {dblp computer science bibliography, https://dblp.org}
+}
+
+% ---- FIPS 205/206 (SLH-DSA/FN-DSA) added for §10 references ----
+
+@techreport{NIST:FIPS205,
+  author      = {{National Institute of Standards and Technology}},
+  title       = {{FIPS 205: Stateless Hash-Based Digital Signature Standard (SLH-DSA)}},
+  institution = {NIST},
+  type        = {Federal Information Processing Standards Publication},
+  number      = {205},
+  year        = {2024},
+  doi         = {10.6028/NIST.FIPS.205}
+}
+
+@techreport{NIST:FIPS206,
+  author      = {{National Institute of Standards and Technology}},
+  title       = {{FIPS 206: Fast Fourier Lattice-based Compact Signatures over NTRU (FN-DSA)}},
+  institution = {NIST},
+  type        = {Federal Information Processing Standards Publication},
+  number      = {206},
+  year        = {2024},
+  doi         = {10.6028/NIST.FIPS.206}
+}
+
+@article{TCHES:BKHYY22,
+  author    = {Hanno Becker and Vincent Hwang and Matthias J. Kannwischer and Bo-Yin Yang and Shang-Yi Yang},
+  title     = {Neon {NTT}: Faster {Dilithium}, {Kyber}, and {Saber} on {Cortex-A72} and {Apple M1}},
+  journal   = {{IACR} Transactions on Cryptographic Hardware and Embedded Systems},
+  volume    = {2022},
+  number    = {1},
+  pages     = {235--263},
+  year      = {2022},
+  doi       = {10.46586/tches.v2022.i1.235-263}
+}

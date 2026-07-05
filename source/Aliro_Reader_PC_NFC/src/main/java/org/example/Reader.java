@@ -330,10 +330,10 @@ public class Reader {
     private void testFullProtocol() throws Exception {
         System.out.println("\n--- Full Protocol Test ---");
         testAUTH0();
-        Thread.sleep(500); // 短暂延迟
-        testAUTH1();
         Thread.sleep(500);
         testLOADCERT();
+        Thread.sleep(500);
+        testAUTH1();
     }
 
     private void testCustomCommand(Scanner scanner) throws CardException {

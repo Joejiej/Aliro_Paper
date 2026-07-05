@@ -41,6 +41,11 @@
 \newcommand{\iclient}{i}
 \newcommand{\jserver}{j}
 \renewcommand{\GG}{\mathbb{G}}
+\newcommand{\hkdf}{\mathsf{HKDF}}
+\newcommand{\extr}{\mathsf{Extract}}
+\newcommand{\expand}{\mathsf{Expand}}
+\newcommand{\msh}{\mathsf{H}}
+\newcommand{\hmac}{\mathsf{HMAC}}
 
 \begin{document}
 
@@ -65,9 +70,7 @@ We present \emph{PQ-Aliro}, a post-quantum adaptation of Aliro that replaces ECD
 ML-KEM-768 (CRYSTALS-Kyber) and ECDSA with ML-DSA-65 (CRYSTALS-Dilithium) while
 preserving the original three-round structure (AUTH0 / LOADCERT / AUTH1), the HKDF-based
 session-key derivation (HMAC-SHA256 + HKDF-Expand), and AES-256-GCM message encryption.
-We prove, within a Bellare--Rogaway-style symbolic model, that PQ-Aliro achieves mutual
-authentication, forward secrecy, and identity privacy under the assumed hardness of the
-ML-KEM and ML-DSA problems.
+We prove, within the AKE security model of Sch{\"a}ge et al.~\cite{PKC:SchSchLau20} (which extends the Bellare--Rogaway framework~\cite{C:BelRog93} with original-key partnering and responder-identity privacy), that PQ-Aliro achieves mutual authentication, forward secrecy (under long-term key corruption), and identity privacy under the IND-1CCA security of ML-KEM-768, the EUF-CMA security of ML-DSA-65, the PRF security of HKDF, and the AEAD security of AES-256-GCM.
 A full prototype is implemented on Android HCE and a PC NFC reader using BouncyCastle 1.78
 BCPQC; an end-to-end test suite of 20 assertions covering 9 PQC configurations passes
 without error.
@@ -81,9 +84,9 @@ deployment over a single ISO 14443 NFC channel practical.
 
 The advent of large-scale quantum computing poses a fundamental threat to the public-key cryptography underpinning today's digital infrastructure. Shor's algorithm~\cite{SIAM:Shor97} can factor integers and compute discrete logarithms in polynomial time, rendering RSA and elliptic-curve cryptography (ECC) insecure, while Grover's algorithm~\cite{STOC:Grover96} halves the effective security of symmetric primitives. Although the timeline for cryptographically relevant quantum computers remains uncertain, the strategic risk is real: adversaries may harvest ciphertext today and decrypt it once quantum capability matures---a threat model known as ``harvest now, decrypt later.'' In response, the National Institute of Standards and Technology (NIST) has finalised two post-quantum cryptography (PQC) standards: FIPS~203 (ML-KEM, based on CRYSTALS-Kyber)~\cite{NIST:FIPS203} for key encapsulation, and FIPS~204 (ML-DSA, based on CRYSTALS-Dilithium)~\cite{NIST:FIPS204} for digital signatures. NIST IR~8547~\cite{NIST:IR8547} further mandates that federal agencies complete migration away from RSA and ECC by 2035. Physical access control systems are a particularly sensitive target: NFC-based door locks and vehicle entry systems guard critical infrastructure and personal safety, yet virtually all deployed protocols rely on ECC. Transitioning these systems to post-quantum security before the quantum threat materialises is therefore an urgent engineering challenge.
 
-Aliro~1.0~\cite{CSA:Aliro10}, published by the Connectivity Standards Alliance (CSA), is a recently standardised multi-modal access-control protocol supporting NFC, BLE, and UWB bearers. Its cryptographic core is built on ECC: an ECDH key-exchange over P-256 for session-key establishment and ECDSA for certificate-based entity authentication. Similar designs appear in the automotive domain through CCC Digital Key~3.0~\cite{CCC:DigKey3}, which likewise relies on ECDH/ECDSA for secure vehicle-phone pairing. Integrating ML-KEM and ML-DSA into such protocols is non-trivial for three interconnected reasons. First, \emph{object-size inflation}: an ML-DSA-65 public key occupies 1{,}952 bytes and a signature 3{,}309 bytes, compared with 65 bytes and $\approx$72 bytes for ECDSA on P-256---an increase of roughly $30\times$ and $46\times$, respectively. An ML-KEM-768 ciphertext is 1{,}088 bytes, versus 65 bytes for an ephemeral ECDH public key. Second, \emph{NFC channel constraints}: ISO/IEC~14443 ISO-DEP frames carry at most 255 bytes of application data per APDU, and the physical-layer bit rate ranges from 106 to 848~kbit/s. Even at 424~kbit/s---the rate typically negotiated by Android HCE---a single PQ-Aliro transaction under the default ML-DSA-65 $\times$ ML-KEM-768 configuration transfers approximately 16.4~KB across $\approx$75 APDUs, roughly $14\times$ the $\approx$1.2~KB of a classical ECC transaction. Third, \emph{platform limitations}: Android's \texttt{KeyStore} API exposes no native support for lattice-based algorithms, requiring the implementation to manage PQC key material entirely in software using third-party libraries such as BouncyCastle.
+Aliro~1.0~\cite{CSA:Aliro10}, published by the Connectivity Standards Alliance (CSA), is a recently standardised multi-modal access-control protocol supporting NFC, BLE, and UWB bearers. Its cryptographic core is built on ECC: an ECDH key-exchange over P-256 for session-key establishment and ECDSA for certificate-based entity authentication. Similar designs appear in the automotive domain through CCC Digital Key~3.0~\cite{CCC:DigKey3}, which likewise relies on ECDH/ECDSA for secure vehicle-phone pairing. Integrating ML-KEM and ML-DSA into such protocols is non-trivial for three interconnected reasons. First, \emph{object-size inflation}: an ML-DSA-65 public key occupies 1{,}952 bytes and a signature 3{,}309 bytes, compared with 65 bytes and $\approx$72 bytes for ECDSA on P-256---an increase of roughly $30\times$ and $46\times$, respectively. An ML-KEM-768 ciphertext is 1{,}088 bytes, versus 65 bytes for an ephemeral ECDH public key. Second, \emph{NFC channel constraints}: ISO/IEC~14443~\cite{ISOIEC14443} ISO-DEP frames carry at most 255 bytes of application data per APDU, and the physical-layer bit rate ranges from 106 to 848~kbit/s. Even at 424~kbit/s---the rate typically negotiated by Android HCE---a single PQ-Aliro transaction under the default ML-DSA-65 $\times$ ML-KEM-768 configuration transfers approximately 16.4~KB across $\approx$75 APDUs, roughly $14\times$ the $\approx$1.2~KB of a classical ECC transaction. Third, \emph{platform limitations}: Android's \texttt{KeyStore} API exposes no native support for lattice-based algorithms, requiring the implementation to manage PQC key material entirely in software using third-party libraries such as BouncyCastle.
 
-This paper presents \textbf{PQ-Aliro}, the first complete PQC upgrade of any Aliro-family protocol. Our contributions are as follows:
+This paper presents \textbf{PQ-Aliro}, which, to the best of our knowledge, is the first complete PQC upgrade of any Aliro-family protocol (see \S\,\ref{sec:related}). Our contributions are as follows:
 
 \begin{enumerate}
 
@@ -91,28 +94,18 @@ This paper presents \textbf{PQ-Aliro}, the first complete PQC upgrade of any Ali
 We design a drop-in PQC variant of the Aliro Expedited flow that replaces ECDH with ML-KEM-768 key encapsulation and ECDSA with ML-DSA-65 signatures, preserving the three-round AUTH0/LOADCERT/AUTH1 message structure. We provide a full open-source implementation: an Android HCE user-device app and a PC NFC reader, both using BouncyCastle~1.78 BCPQC as the cryptographic back-end.
 
 \item \textbf{APDU-level overhead analysis.}
-We conduct an exhaustive byte-accurate analysis of communication overhead for all nine PQC parameter combinations (Dilithium$\{2,3,5\} \times $Kyber$\{512,768,1024\}$). The default ML-DSA-65 $\times$ ML-KEM-768 configuration incurs $\approx$16.4~KB and $\approx$75 APDUs per transaction; the lightest ML-DSA-44 $\times$ ML-KEM-512 configuration reduces this to $\approx$11.9~KB and $\approx$55 APDUs. We additionally show that a \emph{key-slot} optimisation---pre-caching the reader certificate on the user device---eliminates the LOADCERT round and saves $\approx$5--7~KB.
+We conduct an exhaustive byte-accurate analysis of communication overhead for all nine PQC parameter combinations (Dilithium$\{2,3,5\} \times $Kyber$\{512,768,1024\}$). Overhead ranges from $\approx$11.9~KB (D2$\times$K512) to $\approx$23.2~KB (D5$\times$K1024), compared to $\approx$1.2~KB for the classical ECC instantiation. The default ML-DSA-65 $\times$ ML-KEM-768 configuration incurs $\approx$16.4~KB and $\approx$75 APDUs per transaction; the lightest ML-DSA-44 $\times$ ML-KEM-512 configuration reduces this to $\approx$11.9~KB and $\approx$55 APDUs. We additionally show that a \emph{key-slot} optimisation---pre-caching the reader certificate on the user device---eliminates the LOADCERT round and saves $\approx$5--7~KB. To our knowledge, no prior work provides a complete, APDU-granular communication-overhead analysis for a PQC-upgraded NFC access-control protocol.
 
 \item \textbf{Formal security analysis.}
-Building on the Bellare--Rogaway security model~\cite{C:BelRog93} and the provable security of ML-KEM~\cite{EuroSP:BDKLLSSSS18} and ML-DSA~\cite{TCHES:DKLLSSS18}, we provide a formal security proof establishing that PQ-Aliro achieves mutual authentication, forward secrecy, and reader-identity privacy under the module learning-with-errors (MLWE) and module short-integer-solution (MSIS) hardness assumptions in the Bellare--Rogaway model~\cite{C:BelRog93} (see \S\,6--7 for the full model and proof).
+Building on the AKE security model of Sch{\"a}ge et al.~\cite{PKC:SchSchLau20} (which extends Bellare--Rogaway~\cite{C:BelRog93} with original-key partnering and responder-identity privacy) and the provable security of ML-KEM~\cite{EuroSP:BDKLLSSSS18} and ML-DSA~\cite{TCHES:DKLLSSS18}, we prove that PQ-Aliro achieves mutual authentication, forward secrecy (under long-term key corruption), and reader-identity privacy. The security bound reduces to the IND-1CCA security of ML-KEM-768, the EUF-CMA security of ML-DSA-65, the PRF security of HKDF, and the AEAD security of AES-256-GCM (see \S\,6--7 for the full model and proof).
 
 \item \textbf{Engineering insights for constrained Android HCE.}
-We document critical implementation findings: isolating Dilithium private-key operations inside an \texttt{isolatedProcess} Service to prevent cross-process key leakage, and dispatching ML-DSA signing asynchronously to a background coroutine to avoid ANR deadlocks on the HCE main thread. These lessons are expected to generalise to other lattice-based protocols deployed over bandwidth-constrained ISO-DEP transports.
+We identify and resolve two Android-specific hazards invisible at the protocol level: Dilithium private-key exposure through JVM garbage-collection non-determinism (addressed by named-process isolation with immediate self-termination), and HCE main-thread deadlock from blocking ML-DSA signing calls (addressed by asynchronous dispatch). No prior PQC-over-HCE implementation has documented either hazard.
 
 \end{enumerate}
 
 \noindent
-The remainder of this paper is organised as follows.
-Section~2 surveys related work on PQC integration in constrained communication protocols and NFC/BLE access control.
-Section~3 provides background on the Aliro~1.0 protocol and the ML-KEM/ML-DSA algorithms.
-Section~4 introduces formal definitions and notation used throughout the security analysis.
-Section~5 presents the PQ-Aliro protocol design, APDU message formats, and trust framework.
-Section~6 defines the security model and security goals.
-Section~7 contains the formal security proof.
-Section~8 describes the Android HCE and PC reader implementation details.
-Section~9 reports the communication-overhead evaluation and NFC timing measurements.
-Section~10 discusses limitations, optimisation trade-offs, and future directions.
-Section~11 concludes the paper.
+The remainder is organised as follows: \S\,\ref{sec:related} surveys related work; \S\,\ref{sec:prelim} introduces preliminaries; \S\,\ref{sec:design:kdf} presents the protocol; \S\,\ref{sec:model}--\ref{sec:proof} establish security; \S\,\ref{sec:implementation}--\ref{sec:evaluation} describe the implementation and evaluation; \S\,\ref{sec:discussion} discusses optimisations and limitations; \S\,10 concludes.
 % -----------------------------------------------------------------------
 % §2 Related Work
 % -----------------------------------------------------------------------
@@ -122,29 +115,11 @@ Section~11 concludes the paper.
 \subsection{Post-Quantum Key Exchange and Authentication}
 \label{sec:related:pqake}
 
+The ML-KEM and ML-DSA algorithms used in PQ-Aliro are formally described in Section~\ref{sec:prelim}; here we focus on existing AKE constructions built from lattice primitives.
+
 The standardisation of post-quantum cryptographic primitives has spurred a
 growing body of work on constructing efficient and provably secure authenticated
 key exchange (AKE) protocols from lattice-based building blocks.
-CRYSTALS-Kyber~\cite{EuroSP:BDKLLSSSS18}, the KEM underlying NIST FIPS~203
-(ML-KEM)~\cite{NIST:FIPS203}, provides IND-CCA2-secure encapsulation whose
-security reduces to the hardness of the Module-Learning-With-Errors (MLWE)
-problem.
-CRYSTALS-Dilithium~\cite{TCHES:DKLLSSS18}, standardised as ML-DSA (FIPS~204)~\cite{NIST:FIPS204},
-provides EUF-CMA-secure signatures whose security rests on the Module-Short-Integer-Solution
-(MSIS) and MLWE assumptions.
-Both schemes offer three security levels ($\{2, 3, 5\}$) aligned with NIST
-security categories II, III, and V, giving protocol designers a tunable
-security--overhead trade-off.
-
-NIST has also standardised Falcon (FIPS~206, FN-DSA)~\cite{NIST:FIPS206} as a
-signature scheme that achieves significantly smaller signatures than ML-DSA: at
-the 128-bit security level, a Falcon signature is approximately 4.8 times
-smaller than an ML-DSA-65 signature, though its key-generation procedure
-requires Gaussian sampling.
-For applications that can tolerate larger signatures in exchange for a
-different security foundation, SLH-DSA (FIPS~205)~\cite{NIST:FIPS205} provides
-a hash-based, stateless signature alternative that does not rely on lattice
-assumptions, with signature sizes ranging from 8 to 50~KB.
 
 KEMTLS~\cite{CCS:SchSteWig20} is a landmark engineering contribution that
 replaces the signature-based handshake of TLS~1.3 with KEM-based mutual
@@ -210,6 +185,8 @@ door-access setting.
 The TLS~1.3 cryptographic analysis of Dowling et al.~\cite{JC:DFGS21} provides
 a further point of comparison for multi-stage AKE models, although its
 record-layer focus is orthogonal to our APDU-layer concerns.
+We adopt the framework of Sch{\"a}ge et al.~\cite{PKC:SchSchLau20} because, to the best of our knowledge, it is the only BR-style AKE model that simultaneously captures responder-identity privacy (tracking resilience) and original-key partnering---both essential properties for the Aliro access-control setting.
+The eCK model~\cite{PROVSEC:LaMLauMit07} provides stronger guarantees against ephemeral-state leakage but does not address identity privacy; Lyu et al.~\cite{AC:LLHG22} model identity privacy but assume a single-session setting incompatible with multi-user Aliro deployments.
 This emphasis on APDU-layer constraints naturally leads to the question of how
 PQC primitives perform on the constrained platforms typical of NFC access
 control.
@@ -250,12 +227,12 @@ PQ-Aliro addresses all three dimensions---wire compatibility, byte-accurate
 overhead characterisation, and formal security proof---simultaneously: it
 delivers a wire-compatible PQC upgrade, a byte-accurate overhead
 characterisation across all nine ML-KEM/ML-DSA parameter combinations, and a
-formal proof of mutual authentication, forward secrecy, and identity privacy.
+formal security proof establishing mutual authentication, forward secrecy (under long-term key corruption), and identity privacy.
 % -----------------------------------------------------------------------
-% §3 Background
+% §3 Preliminaries
 % -----------------------------------------------------------------------
-\section{Background}
-\label{sec:background}
+\section{Preliminaries}
+\label{sec:prelim}
 
 \subsection{The Aliro Access Control Protocol}
 \label{sec:aliro}
@@ -307,9 +284,8 @@ chunks application data into frames of at most 200~bytes, while the UD side
 responds in chunks of at most 240~bytes.  Fields longer than 255~bytes are
 encoded with BER-TLV long-form length (\texttt{0x82} followed by a two-byte
 big-endian length), consuming an extra 4~bytes of framing overhead per field.
-Each command APDU adds a 6-byte header
-(\texttt{CLA\,|\,INS\,|\,P1\,|\,P2\,|\,Lc\,...\,|\,Le}), and each HCE response
-appends a 2-byte status word.
+Each command APDU adds a 6-byte header (CLA, INS, P1, P2, Lc, Le),
+and each HCE response appends a 2-byte status word.
 
 In the original ECC instantiation (P-256 ECDH + ECDSA) the total application-layer
 payload per transaction amounts to roughly 1.2~KB, typically completing in a
@@ -333,7 +309,7 @@ $(\mathsf{Gen}, \mathsf{Encap}, \mathsf{Decap})$: the receiver generates a key
 pair $(\mathit{pk}, \mathit{sk}) \leftarrow \mathsf{Gen}()$; the sender
 produces a ciphertext and shared secret $(c, K) \leftarrow \mathsf{Encap}(\mathit{pk})$;
 the receiver recovers $K \leftarrow \mathsf{Decap}(\mathit{sk}, c)$.
-ML-KEM achieves IND-CCA security in the random-oracle model.  Three parameter
+ML-KEM achieves IND-CCA2 security in the random-oracle model via the Fujisaki--Okamoto transform~\cite{JC:FujOka13}.  Three parameter
 sets target NIST security levels~1, 3, and~5:
 ML-KEM-512, ML-KEM-768, and ML-KEM-1024, respectively.
 PQ-Aliro adopts \textbf{ML-KEM-768} (Level~3) by default,
@@ -378,129 +354,148 @@ NIST security level & ---    & Level~3   & Level~3   \\
 
 
 % -----------------------------------------------------------------------
-% §4 Definitions and Components (from main-Full.tex)
+% §3.3 Cryptographic Definitions
 % -----------------------------------------------------------------------
-\section{Definitions and Components}
-\label{definition 1}
-\noindent\textbf{Notations.}
-Let $g$ be a generator of the cyclic group $\GG$ of prime order $p$.
-Let $y\sample \mathcal{Y}$ denote sampling a uniformly random element $y$ from $\mathcal{Y}$.
-$x\coloneqq z$ means that the value of $z$ is assigned to $x$.
-For a probabilistic algorithm $f(x)$ with input $x$, $y\sample f(x)$ represents a random output of $f(x)$ and $y\gets f(x;r)$ represents the output of $f(x)$ using randomness $r$.
-% $y\gets g(x)$ represents the process of picking randomness $r$ at random and setting $y\gets g(x;r)$.
-For a positive integer $N$, $[N]$ denotes the integer set $\mathcal{X} \coloneqq \{1, 2, 3,\cdots, N\}$.
-Let $\SEC$ denote the security parameter, $\negli(\lambda)$ denote a negligible function of $\SEC$ and $p(\SEC)$ denote a polynomial of $\SEC$.
-For all polynomials $p(\lambda)$ and all sufficiently large $\lambda$, it holds that $\negli(\lambda) < \frac{1}{p(\lambda)}$.
-% PPT refers to {\it probabilistic polynomial-time}.
-% For two parties $\mathsf{A}$ and $\mathsf{B}$, $\mathsf{A} \circ \mathsf{B}$ denotes a composed party of $\mathsf{A}$ and $\mathsf{B}$.
+\subsection{Cryptographic Definitions}
+\label{sec:definitions}
 
-\begin{comment}
-    \begin{defn}[Discrete Logarithm (DL) Assumption]
-    Consider the following experiment between the challenger $\mathcal{C}$ and the adversary $\mathcal{A}$. $\mathcal{C}$ samples $a\sample \ZZ_{p}$, and sends $g^{a}$ to $\mathcal{A}$. We define the advantage of $\mathcal{A}$ as
-    $$
-    \mathrm{DLAdv}[\mathcal{A},\GG] \coloneqq \mathrm{Pr}[\mathcal{A}(g,g^{a}) = a].
-    $$
-    The DL assumption says that for any probabilistic polynomial-time $(\text{PPT})$ adversary $\mathcal{A}$, $\mathrm{DLAdv}[\mathcal{A},\GG]$ is negligible.
+\noindent\textbf{Notation.}
+We write $y\sample \mathcal{Y}$ to indicate that $y$ is chosen uniformly at random from the set $\mathcal{Y}$.
+The notation $x\coloneqq z$ means that $x$ is assigned the value $z$.
+For a randomized algorithm $f$, $y\sample f(x)$ denotes a fresh random output obtained by executing $f$ on input $x$, while $y\gets f(x;r)$ denotes the deterministic evaluation of $f$ with explicit randomness $r$.
+For a positive integer $N$, $[N]$ stands for the set $\{1,2,3,\dots,N\}$.
+Let $\lambda$ be the security parameter; $\negli(\lambda)$ denotes a negligible function in $\lambda$, and $p(\lambda)$ an arbitrary polynomial.
+For all polynomials $p$ and sufficiently large $\lambda$, $\negli(\lambda) < 1/p(\lambda)$.
+
+\subsubsection{Collision-Resistant Hash Functions}
+
+\begin{defn}[Collision-Resistant Hash Function] \label{def:crhf}
+A hash function $\msh : \{0,1\}^* \to \{0,1\}^\lambda$ is collision-resistant if for every PPT adversary $\mathcal{A}$,
+\[
+\mathsf{Adv}_{\msh}^{\mathsf{coll}}(\mathcal{A}, \lambda) := \Pr\bigl[(x, x') \gets \mathcal{A}(1^\lambda) : x \neq x' \wedge \msh(x) = \msh(x')\bigr] \leq \negli(\lambda).
+\]
+The transcript hash $\mathit{trans} = \msh(pk_e \| c_e)$ in our protocol is modelled as a collision-resistant hash function; the security reduction in Section~\ref{sec:proof} (Game 1) relies on this property.
 \end{defn}
-\end{comment}
 
-% The CDH assumption and DDH assumption are deferred to Appendix \ref{cdhddh}. 
-%We recall the \textit{strong Diffie-Hellman} (SDH) assumption~\cite{RSA:AbdBelRog01}. 
-% First, we recall the DDH oracle: Given a cyclic group $\GG$ of order $p$ with a generator $g$ and a number $x\in \ZZ_{p}$, on input $(g^{x},g^{y},g^{z})$, the DDH oracle answers whether $g^{xy}=g^{z}$.
-\subsection{Key Encapsulation Mechanism}
+\subsubsection{Key Encapsulation Mechanism}
 \label{kem def}
-A key encapsulation mechanism~(KEM)~\cite{EPRINT:Shoup01} consists of the following algorithms:
+A key encapsulation mechanism (KEM)~\cite{EPRINT:Shoup01} is defined by the following four algorithms:
 \begin{itemize}[itemsep=0pt, topsep=0pt, parsep=0pt]
-   \item $\setup(1^{\lambda})$ takes as input security parameter $\lambda$ and produces public parameters $\mathsf{pp}$, including the key space $\mathcal{K}$, public key space $\mathcal{PK}$, private key space $\mathcal{SK}$ and ciphertext space $\mathcal{C}$.
-   \item $\mathsf{Gen}(\mathsf{pp})$ takes as input a public parameter $\mathsf{pp}$ and outputs a key pair $(pk,sk)$.
-   \item $\mathsf{Encap}(pk)$ takes as input a public key $pk$ and outputs a ciphertext $c$ and a key $K$.
-   \item $\mathsf{Decap}(sk,c)$ takes as input a private key $sk$ and a ciphertext $c$ and outputs a key $K$.
+   \item $\setup(1^{\lambda})$: on input the security parameter $\lambda$, produces public parameters $\mathsf{pp}$ that specify the key space $\mathcal{K}$, public key space $\mathcal{PK}$, secret key space $\mathcal{SK}$, and ciphertext space $\mathcal{C}$.
+   \item $\mathsf{Gen}(\mathsf{pp})$: takes the public parameters $\mathsf{pp}$ and outputs a fresh key pair $(pk,sk)$.
+   \item $\mathsf{Encap}(pk)$: given a public key $pk$, generates a ciphertext $c$ together with an encapsulated key $K$.
+   \item $\mathsf{Decap}(sk,c)$: using the secret key $sk$ and a ciphertext $c$, recovers the key $K$.
 \end{itemize}
 
-\noindent{{\bf Correctness.}}
-For all $\ppp\sample \setup(1^{\lambda})$, $(pk,sk)\sample \gen(\ppp)$ and $(c,K)\sample \mathsf{Encap}(pk)$, it holds that $\prob{\mathsf{Decap}(sk,c)\neq K}\leq \negli(\lambda)$.
+\noindent\textbf{Correctness.}
+For every $\ppp\sample \setup(1^{\lambda})$, every $(pk,sk)\sample \gen(\ppp)$, and every $(c,K)\sample \mathsf{Encap}(pk)$, it must hold that $\prob{\mathsf{Decap}(sk,c)\neq K}\leq \negli(\lambda)$.
 
-\smallskip
-We define blindness for KEM as follows. In fact, the universal decryptability for KEM with no tags in \cite{AC:CheHuaYun20} implies this property.
+\noindent\textit{Remark on public parameters.} For conciseness, we omit the \textbf{Setup} algorithm and public parameters $\mathsf{pp}$ in the sequel, as ML-KEM embeds these implicitly in the security parameter.
 
-\begin{defn}[Blindness]
-     For a KEM ${\sf KEM}=({\sf Setup}, {\sf Gen}, {\sf Encap}, {\sf Decap})$, we say ${\sf KEM}$ is blind if the ${\sf Encap}$ algorithm consists of following sub-algorithms.
-     \begin{itemize}[itemsep=0pt, topsep=0pt, parsep=0pt]
-        \item The randomness generation algorithm $\mathsf{Rg}(\mathsf{pp})$: takes as input a public parameter $\mathsf{pp}$, {outputs} a randomness $r$.
-        \item The key generation algorithm $\mathsf{Kg}(pk,r)$: takes as input a public key $pk$ and a randomness $r$, outputs a key $K$.
-        \item The ciphertext generation algorithm $\mathsf{Cg}(r)$: takes as input a randomness $r$, outputs a ciphertext $c$.
-     \end{itemize}
-     and for all $\mathsf{pp}\sample \mathsf{Setup}(1^{\lambda})$, $r\sample \mathsf{Rg}(\mathsf{pp})$, $c\gets \mathsf{Cg}(r)$ and $(pk,sk)\sample\mathsf{Gen}(\mathsf{pp})$, we have $\prob{\mathsf{Decap}(sk,c) \neq \mathsf{Kg}(pk,r)}\leq\negli(\lambda)$.
- \end{defn}
+\begin{defn}[IND-1CCA Security for KEMs] \label{def:kem-ind}
+The $\textrm{IND-1CCA}$ experiment for a KEM is depicted in Figure~\ref{fig:kem-ind-cpa}. The advantage of an adversary $\mathcal{A}$ against the IND-1CCA security of $\textsf{KEM}$ is defined as
+\[
+\mathrm{Adv}_{\kem}^{\mathsf{IND}\text{-}\mathsf{1CCA}}(\mathcal{A},\lambda) = \left| \Pr\left[ \mathsf{IND}\text{-}\mathsf{1CCA}(\mathcal{A}, \lambda, \kem) = 1 \right] - \frac{1}{2} \right|.
+\]
+\end{defn}
 
-We recall a practical security notion of KEM, called {\it one-wayness under plaintext checking attacks} (OW-PCA) \cite{ACISP:SteBaeZhe02} as below. % , which is slightly stronger than OW-CPA security: 
-%%%%Given a public key $pk$ and a ciphertext $C$, it is hard for an adversary that has access to a plaintext checking oracle (PCO) to compute the correct session key $K$. In particular, the PCO receives a key-ciphertext pair $(K,C)$ from the adversary, and returns whether $C$ decapsulates to $K$ under the private key $sk$ or not.
-%First we formally define a plaintext checking oracle.
-% \begin{defn}[Plaintext Checking Oracle]
-%     Given a key encapsulation mechanism $\mathsf{KEM=(Setup,Gen, Encap, Decap)}$ and a key pair $(pk,sk)\sample\mathsf{Gen}$, we define an associated PCO algorithm $\mathsf{PCO}_{\mathsf{KEM},sk}(\cdot,\cdot)$, where given a ciphertext $C$ and a key $K$, $\mathsf{PCO}_{\mathsf{KEM},sk}(C,K)$ returns $1$ if $\mathsf{Decap}(sk,C)=K$, else returns $0$.
-% \end{defn}
+\begin{figure}[!t]
+  \begin{pchstack}[boxed, center]
+  \begin{pcvstack}
+      \pcvspace
+      \procedure[syntaxhighlight=auto,linenumbering]{\textbf{Exp}\ $\mathsf{IND}\text{-}\mathsf{1CCA}(\mathcal{A},\lambda,\kem)$}{%
+      \ppp \sample \kem.\setup(1^{\lambda})\\
+      (\mathsf{pk}^{*}, \mathsf{sk}^{*}) \gets \kem.\gen(\ppp)\\
+      b \sample \{0, 1\}\\
+      (\mathsf{ss}_{0}, \mathsf{ct}^{*}) \gets \kem.\encap(\mathsf{pk}^{*})\\
+      \mathsf{ss}_{1} \sample \mathcal{K}\\
+      b' \gets \mathcal{A}^{\mathcal{O}}(\mathsf{pk}^{*}, \mathsf{ct}^{*}, \mathsf{ss}_{b})\\
+      \pcreturn b' = b
+      }
+  \end{pcvstack}
+  \pchspace
+  \begin{pcvstack}
+      \pcvspace
+      \procedure[linenumbering]{$\mathcal{O}(\mathsf{ct})$}{%
+      \pcif \mathsf{ct} \neq \mathsf{ct}^{*} \wedge \text{first call}\\
+      \t \pcreturn \kem.\decap(\mathsf{sk}^{*}, \mathsf{ct})\\
+      \pcelse\\
+      \t \pcreturn \bot
+      }
+  \end{pcvstack}
+  \end{pchstack}
+  \caption{The $\mathsf{IND}\text{-}\mathsf{1CCA}$ game for $\kem=(\setup,\gen,\encap,\decap)$.}
+  \label{fig:kem-ind-cpa}
+\end{figure}
 
- % Based on the plaintext checking oracle, we define the OW-PCA security of KEM in Fig.~\ref{OW-PCA}.
- \begin{defn}[One-wayness under plaintext checking attacks~\cite{ACISP:SteBaeZhe02}]
-     For a KEM ${\sf KEM}=({\sf Setup}, {\sf Gen}, {\sf Encap}, {\sf Decap})$, we say ${\sf KEM}$ satisfies one-wayness under plaintext checking attacks (OW-PCA) if for any PPT adversary ${\cal A}$, $\mathrm{Adv}_{\mathsf{KEM}}^{\mathsf{OW}\text{-}\mathsf{PCA}}(\mathcal{A},\lambda)\coloneqq \mathrm{Pr}[{\mathsf{OW}\text{-}\mathsf{PCA}}(\mathcal{A},\lambda,\mathsf{KEM}) = 1] \leq \negli(\lambda)$, 
-     where game ${\sf OW}$-${\sf PCA}({\cal A}, \lambda, {\sf KEM})$ is defined in Fig.~\ref{OW-PCA}.
- \end{defn}
+\begin{rmk}
+ML-KEM-768 (CRYSTALS-Kyber)~\cite{NIST:FIPS203} achieves IND-CCA2 security in the random-oracle model via the Fujisaki--Okamoto transform~\cite{JC:FujOka13}. Since IND-CCA2 implies IND-1CCA, the proof in Section~\ref{sec:proof} applies directly when instantiated with ML-KEM-768.
+\end{rmk}
 
- \begin{figure}[!t]
-   \begin{pchstack}[boxed, center]
-   %\scriptsize
-   % \fbox{
-   \begin{pcvstack}
-       \pcvspace
-       \procedure[syntaxhighlight=auto,linenumbering]{\textbf{Exp}\ ${\mathsf{OW}\text{-}\mathsf{PCA}}(\mathcal{A},\lambda,\mathsf{KEM})$}{%
-       \ppp\sample \mathsf{\setup}(1^{\lambda})\\
-       (pk,sk)\sample \mathsf{Gen}(\ppp)\\
-       (c,K)\sample \mathsf{Encap}(pk)\\
-       K^{\prime}\gets \adv^{\mathsf{PCO}_{\mathsf{KEM},sk}(\cdot,\cdot)}(pk,c)\\
-       \pcreturn K == K^{\prime}
-       % \pcif K = K^{\prime}\\
-       % \t \pcreturn 1\\
-       % \pcelse\\
-       % \t \pcreturn 0
-       }
+\subsubsection{Digital Signature Schemes}
+We adopt the standard notion of a digital signature scheme~\cite{GolMicRiv88}.
 
-   \end{pcvstack}
-       
-   \pchspace
+\begin{defn}[Digital Signature Scheme] \label{def:sig}
+A digital signature scheme for a message space $\mathcal{M}$ is a triple of algorithms $\mathsf{SIG} = (\mathsf{SIG.Gen}, \mathsf{SIG.Sign}, \mathsf{SIG.\verif})$ where
+\begin{enumerate}
+    \item $\mathsf{SIG.Gen}(1^{\lambda})$ is the randomized key-generation algorithm that, on input the security parameter $\lambda$, outputs a public verification key $pk$ and a secret signing key $sk$.
+    \item $\mathsf{SIG.Sign}(sk, m)$ is the randomized signing algorithm that, given the signing key $sk$ and a message $m \in \mathcal{M}$, produces a signature $\sigma$.
+    \item $\mathsf{SIG.\verif}(pk, m, \sigma)$ is the deterministic verification algorithm that returns either $0$ (invalid) or $1$ (valid).
+\end{enumerate}
 
-   \begin{pcvstack}
-   \pcvspace
+\paragraph{Correctness.}
+A signature scheme $\mathsf{SIG}$ is \textbf{correct} if for any message $m \in \mathcal{M}$ and for every key pair $(pk, sk)$ in the support of $\mathsf{SIG.Gen}(1^{\lambda})$, it holds that $\mathsf{SIG.\verif}(pk, m, \mathsf{SIG.Sign}(sk, m)) = 1$.
+\end{defn}
 
-   \procedure[linenumbering]{$\mathsf{PCO}_{\mathsf{KEM},sk}(c,K)$}{%
-       K^{*}\gets \mathsf{Decap}(sk,c)\\
-       \pcreturn K == K^{*}
-       % \pcif K = K^{*}\\
-       % \t \pcreturn 1\\
-       % \pcelse\\
-       % \t \pcreturn 0
-   }
-   
-   \end{pcvstack}
-   % }
-   \end{pchstack}
-   \caption{The $\owpca$ game for $\kem=(\setup,\mathsf{Gen},\mathsf{Encap},\mathsf{Decap})$.
-   % $\mathcal{A}$ has access to oracle $\mathcal{O} \coloneqq \{ \mathsf{PCO}_{\mathsf{KEM},sk}(\cdot,\cdot)\}$.
-   }
-   \label{OW-PCA}
-   \end{figure}
+\noindent\textbf{Existential Unforgeability under Chosen-Message Attack.}
+The standard security requirement for digital signatures is existential unforgeability under an adaptive chosen-message attack ($\mathsf{EUF}\text{-}\mathsf{CMA}$)~\cite{GolMicRiv88}.
 
-We define a new notion called strong one-wayness for blind KEM as follows.
+\begin{defn}[$\mathsf{EUF}\text{-}\mathsf{CMA}$ Security] \label{def:euf-cma}
+Let $\mathsf{SIG}$ be a digital signature scheme (Definition~\ref{def:sig}). The experiment $\mathsf{EUF}\text{-}\mathsf{CMA}(\mathcal{A}, \lambda, \mathsf{SIG})$ proceeds as follows:
+\begin{enumerate}
+    \item The challenger generates $(pk, sk) \sample \mathsf{SIG.Gen}(1^{\lambda})$, initialises $Q_{\mathsf{Sign}} := \emptyset$, and gives $pk$ to $\mathcal{A}$.
+    \item $\mathcal{A}$ adaptively issues signature queries; for each query on $m$ the challenger returns $\sigma \gets \mathsf{SIG.Sign}(sk, m)$ and adds $m$ to $Q_{\mathsf{Sign}}$.
+    \item $\mathcal{A}$ outputs $(m^*, \sigma^*)$. The experiment outputs $1$ iff $\mathsf{SIG.\verif}(pk, m^*, \sigma^*) = 1$ and $m^* \not\in Q_{\mathsf{Sign}}$.
+\end{enumerate}
+The advantage is $\mathsf{Adv}_{\mathsf{SIG}}^{\mathsf{EUF}\text{-}\mathsf{CMA}}(\mathcal{A}, \lambda) := \Pr[ \mathsf{EUF}\text{-}\mathsf{CMA}(\mathcal{A}, \lambda, \mathsf{SIG}) = 1 ]$.
+\end{defn}
 
-{\blue
-    \begin{defn}[Strong one-wayness]
-    For a blind KEM $\bkem=({\sf Setup},$ $ {\sf Gen}, {\sf Encap}, {\sf Decap})$ where $\encap=(\rg, \kg, \cg)$, let $\ppp\sample \setup(1^{\SEC}),(pk,sk)\sample \gen(\ppp), r\sample \rg(\ppp)$ and $c\gets \cg(r)$, we say $\bkem$ satisfies strong one-wayness if for any PPT adversary ${\cal A}$, it holds that
-    $\operatorname{Adv}_{\bkem}^{\mathsf{stOW}}(\mathcal{A},\lambda)\coloneqq\mathrm{Pr}[K=\kg({pk}',r)=\decap({sk},c')| (K,{pk}',c')\gets \adv({pk},c)]\leq \negli(\SEC)$.
-    % where $(pk',sk')$ is a public-private key pair.
-\end{defn}} 
+\subsubsection{Key Derivation Functions}
+Key derivation employs the HMAC-based Key Derivation Function ($\hkdf$)~\cite{RFC5869}.
+$\hkdf$ follows the extract-then-expand paradigm, using HMAC~\cite{DBLP:journals/rfc/rfc2104} as its building block.
+$\hkdf$ comprises two procedures:
+\begin{itemize}
+    \item $\hkdf.\extr(\mathit{salt},\mathit{IKM})$: extracts a pseudorandom key from input keying material using an optional salt, as $\hmac.\mathsf{Mac}(\mathit{salt},\mathit{IKM})$.
+    \item $\hkdf.\expand(\mathit{PRK},\mathit{info},L)$: expands the pseudorandom key into $L$ bits using context string $\mathit{info}$~\cite{JC:DFGS21}.
+\end{itemize}
 
+\begin{defn}[Pseudorandom Function (PRF)] \label{def:prf}
+A pseudorandom function $\mathsf{PRF}: \mathcal{K} \times \mathcal{L} \to \{0,1\}^\lambda$ is secure if for every PPT adversary $\mathcal{A}$,
+\[
+\mathsf{Adv}_{\mathsf{PRF}}^{\mathsf{PRF}\text{-}\mathsf{sec}}(\mathcal{A}, \lambda) = \left| \Pr\left[ k \gets \mathcal{K} : \mathcal{A}^{\mathsf{PRF}(k,\cdot)} = 1 \right] - \Pr\left[ \mathcal{A}^{R(\cdot)} = 1 \right] \right| \leq \negli(\lambda),
+\]
+where $R: \mathcal{L} \to \{0,1\}^\lambda$ is a uniformly random function.
+\end{defn}
 
+In our protocol, $\mathsf{HKDF.Extract}$ and $\mathsf{HKDF.Expand}$~\cite{RFC5869} are each modelled as a PRF instance; the input domain $\mathcal{L}$ corresponds to the transcript space, and the output is the session key material.
 
+\subsubsection{Authenticated Encryption}
 
+We model a symmetric authenticated encryption with associated data (AEAD) scheme as a pair $\mathsf{AEAD} = (\mathsf{Enc}, \mathsf{Dec})$ over a key space $\mathcal{K}_\mathsf{AEAD}$ and message space $\mathcal{M}_\mathsf{AEAD}$, following the AE security definition of Rogaway and Shrimpton~\cite{EC:RogShr06}.
+
+\noindent\textbf{Game} $\mathsf{AEAD\text{-}sec}(\mathcal{A}, \lambda, \mathsf{AEAD})$:
+The game proceeds in three phases: (1)~\textbf{Setup phase}: the challenger samples a fresh key $k \sample \mathcal{K}_\mathsf{AEAD}$ and a challenge bit $b \sample \{0,1\}$; (2)~\textbf{Encryption oracle}: on each query $(m_0, m_1, \mathit{ad})$, the challenger returns $\mathsf{Enc}(k, m_b, \mathit{ad})$; (3)~\textbf{Decryption oracle}: on each query $(c, \mathit{ad})$, the challenger returns $\mathsf{Dec}(k, c, \mathit{ad})$ unless $c$ is a challenge ciphertext, in which case $\bot$ is returned.
+The advantage of $\mathcal{A}$ in the above game is:
+
+\begin{defn}[Secure AEAD] \label{def:aead}
+The AEAD scheme $\mathsf{AEAD}$ is secure if for every PPT adversary $\mathcal{A}$ interacting with encryption and decryption oracles (where the decryption oracle refuses to decrypt challenge ciphertexts),
+$$
+\mathrm{Adv}_{\mathsf{AEAD}}^{\mathsf{AEAD}\text{-}\mathsf{sec}}(\mathcal{A}, \lambda) = \left| \Pr\left[b' = b\right] - \frac{1}{2} \right| \leq \negli(\lambda).
+$$
+\end{defn}
+
+The five primitive definitions above---collision-resistant hash (Definition~\ref{def:crhf}), IND-1CCA KEM (Definition~\ref{def:kem-ind}), EUF-CMA signature (Definition~\ref{def:euf-cma}), PRF (Definition~\ref{def:prf}), and secure AEAD (Definition~\ref{def:aead})---serve as the building blocks for the security model (§\,\ref{sec:model}) and the formal security proof (§\,\ref{sec:proof}).
+ML-KEM-768 satisfies IND-1CCA (as noted in the remark above) and ML-DSA-65 satisfies EUF-CMA~\cite{TCHES:DKLLSSS18}, which is precisely what the game-hopping reduction in §\,\ref{sec:proof} requires.
 
 % -----------------------------------------------------------------------
 % §5 Protocol Description (from main-Full.tex lines 380-421)
@@ -514,40 +509,56 @@ As is noted by the Aliro 1.0 specification, ``A Reader SHALL have a key pair (re
 The PQ-Aliro protocol runs as follows.
 Firstly, the Reader uses $\kem.\gen$ to generate a pair of ephemeral keys $({pk}_{e}, {sk}_{e})$.
 
+For expository clarity, Figure~\ref{high-level ake2} presents the abstract protocol specification using generic $\mathsf{KEM}$ and $\mathsf{SIG}$ notation; the concrete ML-KEM-768 and ML-DSA-65 instantiation, APDU-layer fragmentation, and extended transcript hash are detailed in the subsection below and in Section~\ref{sec:implementation}.
+
 \begin{figure}[!t]
     \begin{center}
        \begin{pchstack}[center, boxed]
-          \scalebox{0.9}{\pseudocode{
+          \scalebox{0.72}{\pseudocode{
               {\sf Reader}({pk}_{R}, {sk}_{\sf R}) \< \<{\sf User~Device}({pk}_{\sf UD}, {sk}_{\sf UD})\\
               [0.1\baselineskip ][\hline]
               \<\< \\[-0.5\baselineskip ]
               ({pk}_{e},{sk}_{e})\sample {\sf KEM}.\gen(1^{\lambda})\<\< \\
-              %C\gets \mathsf{Com}(\widetilde{pk})\<\< \tilde{c}\gets \bkem.\cg(\tilde{r})\\
               \< \sendmessageright*[1.5cm]{{pk}_{e}}\\
               \<\<{(c_{e},K_{e})\sample \kem.\mathsf{Encap}(pk_{e})}\\
               \< \sendmessageleft*[1.5cm]{c_{e}}\\
               K_{e}\gets \mathsf{KEM}.\mathsf{Decap}({sk}_{e},c_{e})\\
               trans=\mathsf{H}({pk}_{e}||c_{e})\\
-              \sigma_{\sf Reader}\gets \mathsf{MLDSA.Sign}({sk}_{\sf R}, trans)\< \sendmessageright*[1.5cm]{\sigma_{\sf Reader},{\sf cert}_{R}[{pk}_{\sf R}]} \< \\
-              \<\< \text{if }\mathsf{MLDSA}.\verif({pk}_{\sf R}, trans, \sigma_{\sf Reader}) == 0:\text{abort}\\
+              \sigma_{\sf Reader}\gets \mathsf{SIG.Sign}({sk}_{\sf R}, trans)\< \sendmessageright*[1.5cm]{\sigma_{\sf Reader},{\sf cert}_{R}[{pk}_{\sf R}]} \< \\
+              \<\< \text{if }\mathsf{SIG}.\verif({pk}_{\sf R}, trans, \sigma_{\sf Reader}) == 0:\text{abort}\\
               \< \makebox[0pt][c]{\setlength{\fboxsep}{4pt}\fbox{\begin{minipage}{11cm}\centering
-    ${\sf HS}\gets {\sf HKDF.Extract}(trans, K_e)$\\
-    $\mathsf{SKDevice}_{\sf R}\gets {\sf HKDF.Expand}(\mathsf{HS}, \text{``R''}||trans)$\\
-    $\mathsf{SKDevice}_{\sf UD}\gets {\sf HKDF.Expand}(\mathsf{HS}, \text{``UD''}||trans)$
+    ${\sf HS}\gets {\sf HKDF.Extract}(trans, K_e)$~\cite{RFC5869}\\
+    $\mathsf{SKReader}\gets {\sf HKDF.Expand}(\mathsf{HS}, \text{``R''}||trans)$\\
+    $\mathsf{SKDevice}\gets {\sf HKDF.Expand}(\mathsf{HS}, \text{``UD''}||trans)$\\
+    $\mathsf{StepUpSK}\gets \mathsf{HKDF.Expand}(\mathsf{HS}, \text{``StepUp''}||trans)$\\
+    $\mathsf{BleSK}\gets \mathsf{HKDF.Expand}(\mathsf{HS}, \text{``Ble''}||trans)$\\
+    $\mathsf{URSK}\gets \mathsf{HKDF.Expand}(\mathsf{HS}, \text{``UWB Ranging''}||trans)$
 \end{minipage}}}\\
-              \<\< \sigma_{\sf UD}\gets \mathsf{MLDSA.Sign}({sk}_{\sf UD}, trans)\\
-              \<\<c_{\sf UD}\gets \mathsf{AEAD.Enc}(\mathsf{SKDevice}_{\sf UD}, {pk}_{\sf UD}||\sigma_{\sf UD})\\
+              \<\< \sigma_{\sf UD}\gets \mathsf{SIG.Sign}({sk}_{\sf UD}, trans)\\
+              \<\<c_{\sf UD}\gets \mathsf{AEAD.Enc}(\mathsf{SKDevice}, {pk}_{\sf UD}||\sigma_{\sf UD})\\
               \< \sendmessageleft*[1.5cm]{\mathsf{AUTH1~response}:c_{\sf UD}}\\
-              {pk}_{\sf UD} || \sigma_{\sf UD} \gets {\sf AEAD.Dec}({\sf SKDevice}_{\sf UD}, c_{\sf UD})\\
-              \text{if }\mathsf{MLDSA}.\verif({pk}_{\sf UD}, trans, \sigma_{\sf UD}) == 0:\text{abort}
+              {pk}_{\sf UD} || \sigma_{\sf UD} \gets {\sf AEAD.Dec}({\sf SKDevice}, c_{\sf UD})\\
+              \text{if }\mathsf{SIG}.\verif({pk}_{\sf UD}, trans, \sigma_{\sf UD}) == 0:\text{abort}
               }
            }
           \end{pchstack}
     \end{center}
-          \caption{Our PQ-Aliro protocol.}
+          \caption{Our PQ-Aliro authenticated key exchange protocol.
+          The KEM provides ephemeral key establishment; the signature scheme provides
+          mutual authentication. Both parties derive five session keys
+          ($\mathsf{SKReader}$, $\mathsf{SKDevice}$, $\mathsf{StepUpSK}$,
+          $\mathsf{BleSK}$, $\mathsf{URSK}$) from the shared handshake secret
+          $\mathsf{HS}$ via HKDF~\cite{RFC5869}.}
           \label{high-level ake2}
        \end{figure}
 
+\begin{rmk}
+The implementation hashes the full TLV-encoded AUTH0 command and response
+(including \texttt{trans\_id}, \texttt{reader\_id}, and UD noise) using
+SHAKE256-512~\cite{NIST:FIPS202} rather than the simplified
+$H(pk_e \| c_e)$ in the formal model. The additional fields
+strengthen session binding without affecting the security argument. Specifically, modelling $\msh$ as a collision-resistant hash function (Definition~\ref{def:crhf}), including these fields in the hash input preserves session freshness and transcript uniqueness; since the collision-resistance argument in Game~1 of Section~\ref{sec:proof} applies to any extension of the transcript, the security reduction carries over unchanged.
+\end{rmk}
 
 % -----------------------------------------------------------------------
 % §5.3 APDU Message Mapping (section53_apdu_mapping.tex)
@@ -587,28 +598,28 @@ configuration.
 \label{tab:apdu}
 \centering
 \small
-\begin{tabular}{llclr}
+\begin{tabular}{@{}llcp{4.8cm}r@{}}
 \hline
-\textbf{Message} & \textbf{Direction} & \textbf{INS} & \textbf{Payload Summary} & \textbf{Chunk} \\
+\textbf{Message} & \textbf{Dir.} & \textbf{INS} & \textbf{Payload Summary} & \textbf{Chunk} \\
 \hline
-AUTH0 Command    & Reader$\to$UD & \texttt{0x80} &
-    KEM ephemeral $pk_e$ (1\,184\,B) $+$ \textit{trans\_id} (16\,B) $+$ \textit{reader\_id} (32\,B) &
+AUTH0 Cmd    & R$\to$UD & \texttt{0x80} &
+    $pk_e$ (1\,184\,B), \textit{trans\_id} (16\,B), \textit{reader\_id} (32\,B) &
     200\,B \\
-AUTH0 Response   & UD$\to$Reader & ---           &
-    KEM ciphertext (1\,088\,B) $+$ UD noise (32\,B) &
+AUTH0 Resp   & UD$\to$R & --- &
+    KEM ciphertext (1\,088\,B), UD noise (32\,B) &
     240\,B \\
-LOADCERT Command & Reader$\to$UD & \texttt{0xD1} &
-    Profile0000 certificate ($\approx$5\,500\,B): $pk_{\mathrm{reader}}$ (1\,952\,B) $+$ signature (3\,309\,B) $+$ DN fields ($\approx$200\,B) &
+LOADCERT Cmd & R$\to$UD & \texttt{0xD1} &
+    Profile0000 cert ($\approx$5\,500\,B): $pk_{R}$ (1\,952\,B), $\sigma$ (3\,309\,B), DN ($\approx$200\,B) &
     255\,B \\
-LOADCERT Response & UD$\to$Reader & ---          &
-    Status word only (\texttt{0x9000}) &
+LOADCERT Resp & UD$\to$R & --- &
+    \texttt{0x9000} only &
     --- \\
-AUTH1 Command    & Reader$\to$UD & \texttt{0x81} &
-    ML-DSA-65 transcript signature $\sigma_{\mathrm{reader}}$ (3\,309\,B) &
+AUTH1 Cmd    & R$\to$UD & \texttt{0x81} &
+    $\sigma_{\mathrm{reader}}$ (3\,309\,B) over transcript &
     200\,B \\
-AUTH1 Response   & UD$\to$Reader & ---           &
-    $\mathrm{AEAD}(pk_{\mathrm{ud}} \mathbin{\|} \sigma_{\mathrm{ud}} \mathbin{\|} \mathit{bitmap})$,
-    plaintext 5\,273\,B $+$ GCM tag 16\,B $=$ 5\,289\,B &
+AUTH1 Resp   & UD$\to$R & --- &
+    $\mathrm{AEAD}(pk_{\mathrm{ud}} \| \sigma_{\mathrm{ud}} \| \mathit{bmap})$,
+    5\,273\,B $+$ 16\,B tag &
     240\,B \\
 \hline
 \end{tabular}
@@ -627,271 +638,374 @@ public keys and signatures.
 % §6 Security Model (from main-Full.tex lines 422-616)
 % -----------------------------------------------------------------------
 \section{Security Model}
+\label{sec:model}
 
-The expedited-standard phase is intended to provide the following properties:
+The expedited-standard phase is designed to achieve the following security objectives:
 \begin{itemize}
     \item Mutual authentication.
-    \item Perfect forward secrecy.
+    \item Forward secrecy (under long-term key corruption).
     \item Tracking resilience.
     \item Integrity and confidentiality.
 \end{itemize}
 
 \noindent\textbf{Tracking resilience.}
-Since one of the security goals is tracking resilience, data that could be used to track an individual or specific User Device, such as the ID should have confidentiality protection when in transit.
-The User Device SHALL return an {\sf AUTH1 response} such that an external observer cannot distinguish whether or not the User Device possesses a given reader public key or Access Credential by observing the returned data.
-Specifically, the {\sf AUTH1 response} message is an encrypted message, which is to prevent a malicious Reader from extracting stable identifiers or to be able to detect whether the User Device has a relationship with a specific Reader.
+To realise tracking resilience, any information that could serve as a stable identifier for a User Device (e.g., its identity) must be confidentiality-protected while in transit.
+The User Device SHALL construct an {\sf AUTH1 response} that prevents an external observer, by inspecting the response, from inferring whether the device knows a particular reader public key or Access Credential.
+Concretely, the {\sf AUTH1 response} is encrypted, thereby thwarting a malicious Reader from extracting persistent identifiers or testing whether a prior relationship with a specific Reader exists.
 
-Our security model follows Lyu $\et$~\cite{AC:LLHG22}, which is an extension of the Bellare-Rogaway (BR) model~\cite{C:BelRog93}, which naturally captures the long-term key compromise and mutual authentication.
-Since Aliro is not designed to be secure against the compromise of {\it session state} or {\it ephemeral randomness}, we do not include these compromise capabilities in our model.
-Additionally, the privacy of User Device identities is taken into consideration.
+Our security model builds upon the framework of Sch{\"a}ge et al.~\cite{PKC:SchSchLau20}, which extends the Bellare–Rogaway (BR) model~\cite{C:BelRog93} to naturally capture long-term key compromise and mutual authentication.
+Since Aliro does not aim to resist compromise of \textit{session state} or \textit{ephemeral randomness}, we do not grant the adversary these corruption capabilities.
+{To incorporate tracking resilience, the model explicitly accounts for the privacy of User Device identities.
+By contrast, the Reader’s identity need not remain hidden since the Reader certificate is transmitted in the clear.}
 
-The mutual authentication, perfect forward security and User Device identity privacy are captured by three experiments named ${\sf Exp}_{\mathsf{AKE},\mu,\ell,\adv}^{\mathsf{AUTH}}$, ${\sf Exp}_{\mathsf{AKE},\mu,\ell,\adv}^{\mathsf{IND}}$ and ${\sf Exp}_{\mathsf{AKE},\mu,\ell,\adv}^{\mathsf{Privacy}}$.
-We would define some oracles for the adversary $\adv$ in the above experiments to capture its ability.
-The adversary is allowed to eavesdrop, modify or drop the messages in the public channels.
+In the security mode of~\cite{PKC:SchSchLau20}, there are two ways to select which identity should be used.
+However, in our case, there is only one way, i.e., each party decides the identity on its own.
+Moreover, the public key of the party instead of the to-be-used identity needs to be transferred to the partner.
+Each party has its unique role, i.e., the initiator or responder.
 
-\medskip\noindent\textbf{Oracles.}
-Firstly, we define oracles and their static variables to formalize the behavior of users and the attacks by the adversary. Suppose there are at most $\mu$ users $P_1, P_2, \ldots, P_\mu$, and each user will involve at most $\ell$ instances. $P_i$ is formalized by a series of oracles, $\pi_i^1, \pi_i^2, \ldots, \pi_i^\ell$.
+We extend the model by introducing a criterion for indistinguishability of the responder identity used in the protocol. To achieve this, we equip each responder party with two different identities.
+Then we define a local variable, i.e., the selector bit $d$ that models which identity is used by the responder to authenticate data with.
+However, different from the model in~\cite{PKC:SchSchLau20}, we assume that the identity used by the responder is always decided on its own.
 
-\smallskip\noindent\uline{$\pi_i^s$.} Oracle $\pi_i^s$ will take a message as input and output a new message, simulating user $P_i$'s execution of $s$-th protocol instance. Each oracle $\pi_i^s$ has access to $P_i$'s resource $\mathsf{res}_i := (sk_i, pp, \mathsf{PKList} := \{pk_u\}_{u \in [\mu]})$. $\pi_i^s$ also has its own variables $\mathsf{vars}_{\pi_i^s} := (\mathsf{st}_i^s, \mathsf{Pid}_i^s, \Psi_i^s, k_i^s)$.
+To model the privacy of the responder identity, the adversary may request two different challenges from the challenger with an extended $\mathsf{Test}$-query:
 \begin{itemize}
-    \item $\mathsf{st}_i^s$: State information that has to be stored for $\pi_i^s$'s next round in the execution of the protocol.
-    \item $\mathsf{Pid}_i^s$: The intended communication peer's identity.
-    \item $k_i^s \in \mathcal{K}$: The session key computed by $\pi_i^s$. Here $\mathcal{K}$ is the session key space. We assume that $\emptyset \in \mathcal{K}$.
-    \item $\Psi_i^s \in \{\emptyset, \mathsf{accept}, \mathsf{reject}\}$: $\Psi_i^s$ indicates whether $\pi_i^s$ has completed the protocol execution and accepted $k_i^s$.
+    \item By asking $\mathsf{Test}(\pi_{i}^{s},\mathsf{KEY})$, he requests the classical key indistinguishability;
+    \item By asking $\mathsf{Test}(\pi_{i}^{s}, \mathsf{ID})$, he requests an identity indistinguishability challenge.
 \end{itemize}
-At the beginning, $(\mathsf{st}_i^s, \mathsf{Pid}_i^s, k_i^s, \Psi_i^s)$ are initialized to $(\emptyset, \emptyset, \emptyset, \emptyset)$. We declare that $k_i^s \neq \emptyset$ if and only if $\Psi_i^s = \mathsf{accept}$.
 
-Next, we formalize the oracles that dealing with $\mathcal{A}$'s queries as follows.
+We follow Sch{\"a}ge $\et$ to define a query $\mathsf{Unmask}$ that allows the adversary to learn the identity of the responder in an oracle.
 
-\smallskip\noindent\uline{$\mathsf{Send}(i, s, j, \mathsf{MsgList})$.} For the query $(i, s, j, \mathsf{MsgList})$, it means that $\mathcal{A}$ invokes $\pi_i^s$ with $\mathsf{MsgList}$, making $\pi_i^s$ to play the role of initiator with $j$ being the intended communication peer. Oracle $\pi_i^s$ will deal with each message in $\mathsf{MsgList}$ to generate new messages $\mathsf{MsgList}'$ according to the protocol specification and update its own variables $\mathsf{vars}_{\pi_i^s}$. The output messages $\mathsf{MsgList}'$ is returned to $\mathcal{A}$. If $\mathsf{MsgList} = \emptyset$, $\mathcal{A}$ asks oracle $\pi_i^s$ to send the first round message to $j$ (via broadcast channel).
+\smallskip\noindent\textbf{Computational model for AKE.}
+The execution environment is parameterised by a security parameter $\lambda$; all parties as well as the adversary are modelled as PPT algorithms.
 
-If $\mathsf{Send}(i, s, j, \mathsf{MsgList})$ is the $\tau$-th query asked by $\mathcal{A}$ and $\pi_i^s$ changes $\Psi_i^s$ to $\mathsf{accept}$ after that, then we say that $\pi_i^s$ is $\tau$-accepted.
+\smallskip\noindent\textit{Execution environment.}
+Let $\mathcal{P} = \{P_1, \ldots, P_n\}$ be the set of protocol participants. Each initiator party $P_i$ possesses an identity $\mathsf{ID}_i$ and a long-lived key pair $(\sk_i, \pk_i)$.
+Each responder party $P_i$ possesses two identities $\mathsf{ID}_i^{0}$ and $\mathsf{ID}_i^{1}$, and each of these identities is associated with a long-lived key pair $(\sk_i^{b}, \pk_i^{b})$ for $b\in \{0,1\}$.
+During execution, $P_i$ may spawn several process instances, called \textit{oracles}, denoted $\{\pi_i^s : s \in \{1, \ldots, \ell\}\}$.
+The subscript and superscript indicate that $\pi_i^s$ is the $s$-th oracle of party $P_i$; $P_i$ is also referred to as the \textit{holder} of $\pi_i^s$.
+An oracle that sends the first protocol message is called the \textit{initiator}; otherwise it is the \textit{responder}.
 
-\smallskip\noindent\uline{$\mathsf{Respond}(\mathsf{OList}, \mathsf{MsgList})$.} For the query $(\mathsf{OList}, \mathsf{MsgList})$, it means that $\mathcal{A}$ chooses an oracle set $\mathsf{OList} = \{\pi_j^t\}_{j \in \mathsf{OList}, \pi_j^t}$ to respond messages in $\mathsf{MsgList}$. For $\forall \pi_j^t \in \mathsf{OList}$, $\pi_j^t$ executes the protocol with messages in $\mathsf{MsgList}$ as a potential recipient, and its variables $\mathsf{var}_{\pi_j^t} = (\mathsf{st}_j^t, \mathsf{Pid}_j^t, \Psi_j^t, k_j^t)$ are updated accordingly. Those responding messages generated by $\mathsf{OList}$ constitute message set $\mathsf{MsgList}'$. The output message set $\mathsf{MsgList}'$ is returned to $\mathcal{A}$.
+\smallskip\noindent\textit{Local and global variables.}
+Each oracle $\pi_i^s$ shares the global variables of its holder $P_i$ and may use $P_i$’s secret keys for decryption or signing. It maintains the following local variables in its own memory:
+\begin{itemize}
+\item A session key $k = k_i^s$.
+\item The role of the holder $P_{i}$: $\mathsf{role}= \mathsf{init}/\mathsf{resp}$.
+\item The identity selector bit $d = d_{i}^{s}\in \{0,1\}$, which determines that identity $\mathsf{ID}_{i}^{d}$ (and ${sk}_{i}^{d}$) is used in the protocol run.
+\item An intended partner indicator $\mathsf{Partner} = (j,f)$, holding a pointer $j \in [1;n]$ to the party $P_j \in \{P_1, \ldots, P_n\}$ (often called the \textit{peer}) and a partner identity bit $f\in \{0,1\}$. The value $\mathsf{Partner}_{i}^{s}$ indicates that the public key ${pk}_{j}^{f}$ is used by $\pi_i^s$ to authenticate the received messages.
+If $P_{i}$ is a responder, we always set $f = 0$.
+\end{itemize}
+All local variables are initialized to a distinguished symbol $\bot$, which lies outside any valid domain. During a protocol run, each oracle updates its variables according to the specification and finally either \textit{accepts} or \textit{rejects}. The ultimate purpose of an AKE protocol is to establish a session key $k$.
+The adversary $\adv \notin \{P_1, \ldots, P_n\}$ is a special entity that can interact with all oracles by issuing queries.
 
-\smallskip\noindent\uline{$\mathsf{Corrupt}(i)$.} Upon $\mathcal{A}$'s query $i$, the oracle reveals to $\mathcal{A}$ the long-term secret key $sk_i$ of party $P_i$. After this corruption, $\pi_i^1, \ldots, \pi_i^\ell$ will stop answering any query from $\mathcal{A}$. If $\mathsf{Corrupt}(i)$ is the $\tau$-th query asked by $\mathcal{A}$, we say that $P_i$ is $\tau$-corrupted. If $\mathcal{A}$ has never asked $\mathsf{Corrupt}(i)$, we say that $P_i$ is $\infty$-corrupted.
+\smallskip\noindent\textbf{Adversarial capabilities.} The capabilities granted to the adversary are defined as follows.
+\begin{itemize}
+\item $\textsf{Send}(\pi_i^s, m)$: The active adversary can deliver an arbitrary message $m$ to oracle $\pi_i^s$, which responds according to the protocol. If $m = (\emptyset, P_j)$, where $\emptyset$ is a distinguished start string, $\pi_i^s$ is activated as initiator with intended partner $P_j$ and returns the first protocol message.
+\item $\textsf{Reveal}(\pi_i^s)$: It allows the adversary to obtain the session key $k_i^s$ computed by $\pi_i^s$. This query is only answered if $k_i^s \neq \bot$, i.e., if the oracle has accepted.
+\item $\textsf{Unmask}(\pi_i^s)$: If $P_i$ is an initiator, the adversary is given the identity selector bit of $P_i$, otherwise, the adversary is given the identity selector bit of $P_i$'s peer in $\pi_i^s$.
+\item $\textsf{Corrupt}(P_i)$: The adversary may query any oracle of $P_i$ and receive the long-term key pair $(\sk_i, \pk_i)$. Afterwards, $P_i$ is marked \textit{corrupted}.
+\item $\textsf{Test}(\pi_i^s,m)$: This query may be issued at most once; the oracle is then called the \textit{Test-oracle}. If $\pi_i^s$ has not yet accepted, $\bot$ is returned. Otherwise a fair coin $b$ is flipped and this oracle proceeds as follows.
+\begin{itemize}
+    \item $m = \mathsf{KEY}$: If $b = 0$ the real session key $k_i^s$ is returned; if $b = 1$ a uniformly random element from the keyspace is returned. The result is called the \textit{candidate key}.
+    \item $m = \mathsf{ID}$: The adversary is given $d_{i}^{s} \oplus b$. In this case, the output of the $\mathsf{Test}$ oracle is called {\it candidate identity selector bit}.
+    If $m = \mathsf{ID}$, it is required that $P_{i}$ is a responder. If $P_{i}$ is an initiator, the query is invalid and the $\mathsf{Test}$ oracle outputs $\bot$.
+\end{itemize}
 
-\smallskip\noindent\uline{$\mathsf{RegisterCorrupt}(i, pk)$.} $\mathcal{A}$'s query $(i, pk)$ suggests that $\mathcal{A}$ registers a new party $P_i (i > \mu)$. The oracle distributes $(i, pk_i := pk)$ to all users. In this case, we say that $P_i$ is $0$-corrupted.
+\end{itemize}
 
-\smallskip\noindent\uline{$\mathsf{SessionKeyReveal}(i, s)$.} The query $(i, s)$ means that $\mathcal{A}$ asks the oracle to reveal $\pi_i^s$'s session key. If $\Psi_i^s \neq \mathsf{accept}$, the oracle returns $\bot$. Otherwise, the oracle returns the session key $k_i^s$ of $\pi_i^s$. If $\mathsf{SessionKeyReveal}(i, s)$ is the $\tau$-th query asked by $\mathcal{A}$, we say that $\pi_i^s$ is $\tau$-revealed. If $\mathcal{A}$ has never asked $\mathsf{SessionKeyReveal}(i, s)$, we say that $\pi_i^s$ is $\infty$-revealed.
+\smallskip\noindent\uline{\textbf{Original key partnering.}}
+To exclude trivial attacks, various partnering definitions have been proposed in the literature, starting from matching conversations~\cite{C:BelRog93} and session identifiers~\cite{EC:CanKra01}, up to the distinction between contributive and matching identifiers~\cite{CCS:FisGun14}. Recently, Li and Sch{\"a}ge~\cite{CCS:LiSch17} demonstrated that matching-conversation-based notions are susceptible to so-called no-match attacks.
+We therefore adopt their conceptually novel partnering definition, called \textit{original key partnering}, which is independent of the concrete message flow of the protocol. As argued in~\cite{CCS:LiSch17}, this approach leads to conceptually simpler security proofs because only a subset of active attacks needs to be analyzed.
 
-\smallskip\noindent\uline{$\mathsf{TestKey}(i, s)$.} The query $(i, s)$ means that $\mathcal{A}$ chooses the session key of $\pi_i^s$ for challenge (test). If $\Psi_i^s \neq \mathsf{accept}$, the oracle returns $\bot$. Otherwise, the oracle sets $k_0 = k_i^s$, samples $k_1 \gets \$ \mathcal{K}$. The oracle returns $k_b$ to $\mathcal{A}$, where $b$ is the random bit chosen by the challenger.
+\begin{defn}[Original Key]
+For a pair of communicating oracles $\pi_i^s$ (initiator) and $\pi_j^t$ (responder), the \textit{original key} is the session key that would be computed by each oracle in a protocol run with a completely passive adversary. We write $\mathsf{Origin}(\pi_i^s, \pi_j^t)$ for this key.
+\end{defn}
 
-\smallskip\noindent\uline{$\mathsf{TestPrivacy}(i_0, j_0, i_1, j_1)$.} $\mathcal{A}$'s query is the privacy challenge and it consists of two pairs of identities $(i_0, j_0)$ and $(i_1, j_1)$. The oracle builds $\mu$ new oracles $\{\pi_u^0\}_{u \in [\mu]}$. Let $\pi_{i_b}^0$ initialize the protocol with $\pi_{j_b}^0$ being the intended peer. After the initialization by $\pi_{i_b}^0$, the adversary is allowed to interfere the protocol execution. The transcript of the protocol execution is returned to $\mathcal{A}$, where $b$ is the random bit chosen by the challenger.
+\begin{defn}[Original Key Partnering]
+Two oracles $\pi_i^s$ and $\pi_j^t$ are said to be \textit{partnered} if both have computed their original key $\mathsf{Origin}(\pi_i^s, \pi_j^t)$.
+\end{defn}
 
-\medskip\noindent\textbf{Security experiments.}
-We describe the three experiments ${\sf Exp}_{\mathsf{AKE},\adv}^{\mathsf{AUTH}}$, ${\sf Exp}_{\mathsf{AKE},\adv}^{\mathsf{IND}}$ and ${\sf Exp}_{\mathsf{AKE},\adv}^{\mathsf{Privacy}}$ as follows.
-The security experiment $\mathsf{Exp}^{\mathsf{X}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$, where $\mathsf{X} \in \{\mathsf{AUTH}, \mathsf{IND}, \mathsf{Privacy}\}$, is played between challenger $\mathcal{C}$ and adversary $\mathcal{A}$.
+Let $\mathcal{M}_i^s$ denote the set of all oracles partnered with $\pi_i^s$.
 
+\smallskip\noindent\uline{\textbf{Security game.}}
+We define the security of an AKE protocol via a game. The protocol is considered insecure if an efficient (PPT) adversary can win the game with non-negligible probability.
+
+\begin{defn}[Security Game]
+\label{ake sec game}
+The following game is played between a challenger $\mathcal{C}$ and an adversary $\adv$.
 \begin{enumerate}
-    \item $\mathcal{C}$ runs $\mathsf{AKE.Setup}$ to get AKE public parameter $pp_{\mathsf{AKE}}$.
-    \item For each party $P_i$, $\mathcal{C}$ runs $\mathsf{AKE.Gen}(pp_{\mathsf{AKE}}, i)$ to get the long-term key pair $(pk_i, sk_i)$. Next it chooses a random bit $b \gets \$ \{0, 1\}$ and provides $\mathcal{A}$ with the public parameter $pp_{\mathsf{AKE}}$ and the list of public keys $\mathsf{PKList} := \{pk_i\}_{i \in [\mu]}$.
-    \item $\mathcal{A}$ has access to oracles $\mathsf{Send}$, $\mathsf{Respond}$, $\mathsf{Corrupt}$, $\mathsf{RegisterCorrupt}$, $\mathsf{SessionKeyReveal}$, $\mathsf{TestKey}$, $\mathsf{TestPrivacy}$ by issuing queries in an adaptive way. Note that $\mathcal{A}$ can issue only one query either to $\mathsf{TestKey}$ or to $\mathsf{TestPrivacy}$, but not both. The oracles will reply the corresponding answers to $\mathcal{A}$ as long as the queries lead no trivial attacks.
-    \item At the end of the experiment, $\mathcal{A}$ terminates with an output $b^*$.
-    \item If $b^* = b$, the experiment returns $1$; otherwise the experiment returns $0$.
+\item $\mathcal{C}$ simulates $n$ parties $P_i$, $i \in \{1, \ldots, n\}$.
+For each initiator party $P_i$, $\mathcal{C}$ generates an identity $\mathsf{ID}_i$ and a long-lived key pair $(\sk_i, \pk_i)$.
+For each responder party $P_i$, $\mathcal{C}$ generates two identities $\mathsf{ID}_i^{0}$ and $\mathsf{ID}_i^{1}$, and each of these identities is associated with a long-lived key pair $(\sk_i^{b}, \pk_i^{b})$ for $b\in \{0,1\}$.
+\item $\adv$ may adaptively issue $\textsf{Send}$, $\textsf{Reveal}$, $\textsf{Unmask}$, $\textsf{Corrupt}$, and a single $\textsf{Test}$ query to any oracle $\pi_i^s$ ($i \in [n]$, $s \in [\ell]$).
+\item Finally, $\adv$ outputs a guess $b' \in \{0, 1\}$ for the hidden bit $b$.
 \end{enumerate}
-
-\paragraph{Experiment $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$.} If $\mathcal{A}$ ever queried oracle $\mathsf{TestKey}$ (only once), then $\mathsf{Exp}^{\mathsf{X}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} = \mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$, which is the experiment for forward security of session key. Through $\mathsf{TestKey}$, adversary $\mathcal{A}$ obtains a real session key $k^s_i$ of target oracle $\pi^s_i$ or a random key. The forward security of session key requires that it is hard for any PPT $\mathcal{A}$ to distinguish the two cases.
-
-\paragraph{Experiment $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$.} If $\mathcal{A}$ ever queried oracle $\mathsf{TestPrivacy}$ (only once), then $\mathsf{Exp}^{\mathsf{X}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} = \mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$, which is the experiment for forward privacy of user identity. Through $\mathsf{TestPrivacy}$, $\mathcal{A}$ obtains a protocol transcript, which is either the interaction of $\pi^0_{i_0}$ and $\pi^0_{j_0}$ or the interaction of $\pi^0_{i_1}$ and $\pi^0_{j_1}$. The forward privacy requires that it is hard for any PPT $\mathcal{A}$ to distinguish the two cases.
-
-\paragraph{Experiment $\mathsf{Exp}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$.} If $\mathcal{C}$ checks whether event $\mathsf{WinAuth}$ happens ($\mathsf{WinAuth}$ is defined in Def.~\ref{def:auth}) at the end of the experiment (either $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ or $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$), this experiment is also regarded as $\mathsf{Exp}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$, which is the experiment for authenticity. Roughly speaking, the authenticity of AKE requires that if an oracle $\pi^s_i$ accepts a session key, then there must exist a unique oracle $\pi^t_j$ such that the two oracles have essentially established partnership. Meanwhile, the authenticity makes sure that replay attacks are prevented in the sense that no oracle can make two distinct oracles accepts.
-
-Details of the three experiments are given in Figure~\ref{fig:security-experiments}.
-
-\begin{figure}[t]
-\centering
-\small
-\renewcommand{\arraystretch}{1.1}
-\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Common initialisation} (for all three experiments):
-\begin{enumerate}[leftmargin=2em,label=\arabic*.]
-  \item $pp_{\mathsf{AKE}} \gets \mathsf{AKE.Setup}(1^\lambda)$.\quad
-        For each $i\in[\mu]$: $(pk_i,sk_i)\gets\mathsf{AKE.Gen}(pp_{\mathsf{AKE}},i)$.
-  \item Challenger $\mathcal{C}$ samples $b\gets\!\$\,\{0,1\}$ and gives
-        $\bigl(pp_{\mathsf{AKE}},\,\mathsf{PKList}{:=}\{pk_i\}_{i\in[\mu]}\bigr)$ to $\mathcal{A}$.
-  \item $\mathcal{A}$ adaptively issues oracle queries from
-        $\{\mathsf{Send},\mathsf{Respond},\mathsf{Corrupt},\mathsf{RegisterCorrupt},
-          \mathsf{SessionKeyReveal},\mathsf{TestKey},\mathsf{TestPrivacy}\}$
-        (at most one of $\mathsf{TestKey}$/$\mathsf{TestPrivacy}$, not both).
-  \item $\mathcal{A}$ outputs $b^*$; $\mathcal{C}$ returns $1$ iff $b^*=b$.
-\end{enumerate}
-
-\medskip
-\begin{tabular}{@{}p{0.30\textwidth}@{\quad}p{0.30\textwidth}@{\quad}p{0.30\textwidth}@{}}
-\underline{$\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$}
-&
-\underline{$\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$}
-&
-\underline{$\mathsf{Exp}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$}
-\\[2pt]
-\textit{Active oracle:} $\mathsf{TestKey}$.
-Via $\mathsf{TestKey}(i^*,s^*)$,
-$\mathcal{A}$ receives either the real
-session key $k^{s^*}_{i^*}$ or a
-uniform random key $k_1$.
-$\mathcal{A}$ wins by guessing $b$.
-Forbidden: trivial attacks TA1--TA3.
-$\mathsf{Adv}^{\mathsf{IND}}:=\bigl|\Pr[\cdots\Rightarrow1]-\tfrac{1}{2}\bigr|$.
-&
-\textit{Active oracle:} $\mathsf{TestPrivacy}$.
-Via $\mathsf{TestPrivacy}(i_0,j_0,i_1,j_1)$,
-$\mathcal{A}$ receives a transcript of
-either the $(i_0,j_0)$-session or the
-$(i_1,j_1)$-session.
-$\mathcal{A}$ wins by guessing $b$.
-Forbidden: trivial attacks TA4--TA6.
-$\mathsf{Adv}^{\mathsf{Privacy}}:=\bigl|\Pr[\cdots\Rightarrow1]-\tfrac{1}{2}\bigr|$.
-&
-\textit{Event:} $\mathsf{WinAuth}$.
-Checked at the end of
-$\mathsf{Exp}^{\mathsf{IND}}$ or
-$\mathsf{Exp}^{\mathsf{Privacy}}$.
-$\mathsf{WinAuth}$ occurs if some
-$\pi^s_i$ accepts yet has no
-matching partner $\pi^t_j$,
-or two distinct oracles both
-accept the same session.
-$\mathsf{Adv}^{\mathsf{AUTH}}:=\Pr[\mathsf{WinAuth}]$.
-\\
-\end{tabular}
-\end{minipage}%
-}
-\caption{Security experiments for the PQ-Aliro AKE scheme.
-         Trivial attacks TA1--TA6 are listed in Table~\ref{tab:trivial-attacks}.}
-\label{fig:security-experiments}
-\end{figure}
-
-To precisely describe the security notions for AKE, we have to forbid some trivial attacks by $\mathcal{A}$. To clearly describe trivial attacks, we first define partner.
-
-\begin{defn}[Partner] \label{def:partner}
-We say that an oracle $\pi^s_i$ is partnered to $\pi^t_j$, denoted as $\mathsf{Partner}(\pi^s_i \leftarrow \pi^t_j)$, if the following requirements hold:
-\begin{itemize}
-    \item $\pi^s_i$ accepts with $\Psi^s_i = \mathsf{accept}$ and $\mathsf{Pid}^s_i = j$.
-    \item Upon the time $\pi^s_i$ accepts, the transcript of $\pi^s_i$ is consistent with that of $\pi^t_j$, i.e., the outputs of $\pi^s_i$ are the inputs of $\pi^t_j$, and vice verse.
-\end{itemize}
-We write $\mathsf{Partner}(\pi^s_i \leftrightarrow \pi^t_j)$ if $\mathsf{Partner}(\pi^s_i \leftarrow \pi^t_j)$ and $\mathsf{Partner}(\pi^t_j \leftarrow \pi^s_i)$.
 \end{defn}
 
-We will keep track of the following variables for each party $P_i$ and oracle $\pi^s_i$:
+\begin{defn}[Secure AKE]
+Let $\adv$ be a PPT adversary interacting with $\mathcal{C}$ in the security game above. Suppose $\adv$ calls $\textsf{Test}(\pi_i^s)$, which internally uses bit $b$, and let $\mathsf{Partner}_{i}^{s} = P_j$ be the intended partner of $\pi_i^s$. Let $b'$ be $\adv$’s output. We say that $\adv$ \textit{wins} the game if $b = b'$ and one of the following holds:
 \begin{itemize}
-    \item $\mathsf{crp}_i$: whether user $i$ is corrupted.
-    \item $\mathsf{Aflags}^s_i$: whether the intended partner is corrupted when $\pi^s_i$ accepts.
-    \item $\mathsf{kRevs}^s_i$: whether the session key $k^s_i$ was revealed.
-    \item $\mathsf{T}^s_i$: whether $\pi^s_i$ was tested.
-    \item $\mathsf{Tid}$: whether oracle $\mathsf{TestPrivacy}$ is queried.
-    \item $\mathsf{Tkey}$: whether oracle $\mathsf{TestKey}$ is queried.
-\end{itemize}
-
-For forward security for session key, we identify three trivial attacks.
-
-\begin{description}
-    \item[TA1] Suppose that when user $i$ (formalize by $\pi^s_i$) accepts a session key $k^s_i$, its partner $j$ (formalize by $\pi^t_j$) has already been corrupted by $\mathcal{A}$, then it is quite possible that $\mathcal{A}$ impersonated $j$ to obtain the shared session key $k^s_i$. In this case $k^s_i$ cannot be tested by $\mathsf{TestKey}(i, s)$, otherwise, it will be a trivial attack.
-    \item[TA2] If a session key $k^s_i$ is accepted by user $i$ (formalized by $\pi^s_i$) and is also revealed to $\mathcal{A}$, then $k^s_i$ cannot be tested, otherwise, it will be a trivial attack.
-    \item[TA3] If two users (formalize by oracles $\pi^s_i$ and $\pi^t_j$) are partnered with each other and session key $k^s_i$ of $\pi^s_i$ is revealed to $\mathcal{A}$, then session key $k^t_j$ of $\pi^t_j$ cannot be tested due to $k^s_i = k^t_j$. Otherwise, it will be a trivial attack.
-\end{description}
-
-For the forward privacy for user identity, we identify three trivial attacks.
-
-\begin{description}
-    \item[TA4] If user $i$ is corrupted, then the adversary is able to impersonate the user in a AKE protocol after the corruption. After the protocol execution, the adversary will know the identity of its communicant peer. Hence, this is a trivial attack on privacy of AKE when testing $i$ with $\mathsf{TestPrivacy}$.
-    \item[TA5] The robustness of a AKE makes sure that only one target recipient $j$ is able to use its secret key $sk_j$ to correctly respond the first round message. If the secret key $sk_j$ of the target recipient is corrupted by $\mathcal{A}$, no privacy on $j$ is guaranteed. This is a trivial attack on forward privacy of robust AKE.
-    \item[TA6] If the adversary can observe the response of each user after the user receives the first message, then the identity of the responding user is clear to the adversary. Hence, this is also a trivial attack on the privacy of robust AKE. This trivial attack can be extended to any core part of the first message. To exclude this trivial attack, if the adversary sees the first round message, it is not allowed to feed a message containing the core part of the first round message to other users and observe their responses.
-\end{description}
-
-In Table~\ref{tab:trivial-attacks}, we list the above trivial attacks TA1--TA3 in $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ and trivial attacks TA4--TA6 in $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$.
-
-\begin{table}[htbp]
-\centering
-\caption{Trivial attacks TA1--TA3 for security experiment $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ and TA4--TA6 for security experiment $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$. Note that $\mathsf{Aflags}^s_i = \mathsf{false}$ is implicitly contained in TA2, TA3 because of TA1.}
-\label{tab:trivial-attacks}
-\vspace{1em}
-\begin{tabular}{|c|p{4.2cm}|p{6.8cm}|}
-\hline
-Types & Trivial attacks & Explanation \\
-\hline
-TA1 & 
-$\mathsf{T}^s_i = \mathsf{true} \land \mathsf{Aflags}^s_i = \mathsf{true}$ & 
-$\pi^s_i$ is tested but $\pi^s_i$'s partner is corrupted when $\pi^s_i$ accepts session key $k^s_i$. \\
-\hline
-TA2 & 
-$\mathsf{T}^s_i = \mathsf{true} \land \mathsf{kRevs}^s_i = \mathsf{true}$ & 
-$\pi^s_i$ is tested and its session key $k^s_i$ is revealed. \\
-\hline
-TA3 & 
-$\mathsf{T}^s_i = \mathsf{true} \land \mathsf{Partner}(\pi^s_i \leftrightarrow \pi^t_j) \land \mathsf{kRevs}^t_j = \mathsf{true}$ & 
-$\pi^s_i$ is tested, $\pi^s_i$ and $\pi^t_j$ are partnered to each other, and $\pi^t_j$'s session key $k^t_j$ is revealed. \\
-\hline
-TA4 & 
-$\mathsf{Tid} = \mathsf{true} \land (\mathsf{crp}_{i_0} = \mathsf{true} \lor \mathsf{crp}_{j_0} = \mathsf{true} \lor \mathsf{crp}_{i_1} = \mathsf{true} \lor \mathsf{crp}_{j_1} = \mathsf{true})$ & 
-When $\mathsf{TestPrivacy}(i_0, j_0, i_1, j_1)$ is queried, one of $i_0, j_0, i_1, j_1$ has been corrupted. \\
-\hline
-TA5 & 
-$\mathsf{Tid} = \mathsf{true} \land b^* = b \land (\mathsf{crp}_{j_0} = \mathsf{true} \lor \mathsf{crp}_{j_1} = \mathsf{true}) \land j_0 \neq j_1$ & 
-$\mathsf{TestPrivacy}(i_0, j_0, i_1, j_1)$ has been queried, and either $j_0$ or $j_1$ has been corrupted when checking $b^* = b$. \\
-\hline
-TA6 & 
-$\mathsf{Tid} = \mathsf{true} \land \mathcal{A}$ queried $\mathsf{Respond}(\mathsf{OList}, \mathsf{MsgList})$ s.t. $((j_0, *) \in \mathsf{OList} \lor (j_1, *) \in \mathsf{OList}) \land \mathsf{TfirstMsg} \cap \mathsf{MsgList} \neq \emptyset$ & 
-$\mathsf{TestPrivacy}(i_0, j_0, i_1, j_1)$ is queried. $\mathsf{TfirstMsg}$ is the first message in transcript. $\mathcal{A}$ sees the output $\pi^t_{j_0}(\mathsf{MsgList})$ or $\pi^t_{j_1}(\mathsf{MsgList})$ for some $t \in [\ell]$ via querying $\mathsf{Respond}$ with messages $\mathsf{MsgList}$ containing essential information of $\mathsf{TfirstMsg}$. \\
-\hline
-\end{tabular}
-\end{table}
-
-\subsection{Security Notions for AKE}
-
-\begin{defn}[Authentication of AKE] \label{def:auth}
-Let $\mathsf{WinAuth}$ denote the event that $\mathcal{A}$ breaks authentication in the security experiment $\mathsf{Exp}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ (see Figure~\ref{fig:security-experiments}). $\mathsf{WinAuth}$ happens iff $\exists (i, s) \in [\mu] \times [\ell]$, s.t.
+    \item $m = \mathsf{KEY}$, then the following conditions are all satisfied:
 \begin{enumerate}
-    \item[(1)] $\pi^s_i$ is $\tau$-accepted.
-    \item[(2)] $P_j$ is $\hat{\tau}$-corrupted with $j := \mathsf{Pid}^s_i$ and $\hat{\tau} > \tau$.
-    \item[(3)] Either (3.1) or (3.2) or (3.3) happens. Let $j := \mathsf{Pid}^s_i$.
-    \begin{enumerate}
-        \item[(3.1)] There is no oracle $\pi^t_j$ that $\pi^s_i$ is partnered to.
-        \item[(3.2)] There exist two distinct oracles $\pi^t_j$ and $\pi^{t'}_{j'}$, to which $\pi^s_i$ is partnered.
-        \item[(3.3)] There exist two oracles $\pi^{s'}_{i'}$ and $\pi^t_j$ with $(i', s') \neq (i, s)$, such that both $\pi^s_i$ and $\pi^{s'}_{i'}$ are partnered to $\pi^t_j$.
-    \end{enumerate}
+  \item $\textsf{Reveal}(\pi_i^s)$ has never been queried;
+  \item no $\textsf{Reveal}(\pi_j^t)$ query has been asked for any oracle $\pi_j^t$ partnered with $\pi_i^s$;
+  \item $\mathsf{Partner}_{i}^{s} = P_j$ has not been corrupted while $\mathcal{M}_i^s = \emptyset$ (i.e., there is no partnered oracle).
 \end{enumerate}
-The advantage of an adversary $\mathcal{A}$ in $\mathsf{Exp}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ is defined as
+\item $m = \mathsf{ID}$, then we require that
+\begin{itemize}
+    \item no query $\mathsf{Unmask}(\pi_i^s)$ has been asked;
+    \item $\mathsf{Partner}_{i}^{s} = (P_{j},f)$ has not been corrupted while $M_i^s = \emptyset$.
+\end{itemize}
+\end{itemize}
+
+Define $\mathrm{Adv}_{\Pi}^{\mathsf{AKE}\text{-}\mathsf{sec}}(\adv, \lambda) = \bigl|\Pr[b = b'] - 1/2\bigr|$.
+An AKE protocol $\Pi$ is \textit{secure} if for every PPT adversary $\adv$,
 \[
-\mathsf{Adv}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} := \Pr\left[\mathsf{Exp}^{\mathsf{AUTH}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \Rightarrow 1\right] = \Pr_{\exists (i,s)}\left[(1) \land (2) \land \bigl((3.1) \lor (3.2) \lor (3.3)\bigr)\right].
+\mathrm{Adv}_{\Pi}^{\mathsf{AKE}\text{-}\mathsf{sec}}(\adv, \lambda) \leq \negli(\lambda).
 \]
 \end{defn}
 
-\begin{rmk}
-Given $(1) \land (2)$, (3.1) indicates a successful impersonation of $P_i$, (3.2) suggests one instance of $P_i$ has multiple partners, and (3.3) corresponds to a successful replay attack. Def.~\ref{def:auth} captures mutual explicit authentication since $\pi^s_i$ is either an initiator or a responder.
-\end{rmk}
-
-\begin{defn}[Forward Security for Session Key of AKE]
-In $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ (see Figure~\ref{fig:security-experiments}), Let $b^*$ be $\mathcal{A}$'s output. Then $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \Rightarrow 1$ iff $b^* = b$. The advantage of $\mathcal{A}$ in $\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ is defined as
-\[
-\mathsf{Adv}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} := \left|\Pr\left[\mathsf{Exp}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \Rightarrow 1\right] - 1/2\right|.
-\]
-Forward security for session key asks $\mathsf{Adv}^{\mathsf{IND}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \leq \mathsf{negl}(\lambda)$ for all PPT $\mathcal{A}$.
-\end{defn}
-
-\begin{defn}[Forward Privacy for User Identity of AKE]
-Suppose that $\mathcal{A}$ queries $\mathsf{TestPrivacy}(i_0, j_0, i_1, j_1)$ and $b^*$ is $\mathcal{A}$'s output in $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ (see Figure~\ref{fig:security-experiments}). Define event $\mathsf{WinPrivacy}$ as $b^* = b$ and neither $j_0$ nor $j_1$ are corrupted unless $j_0 = j_1$ (i.e. $(\mathsf{crp}_{j_0} = \mathsf{false} \land \mathsf{crp}_{j_1} = \mathsf{false}) \lor j_0 \neq j_1$). Then $\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \Rightarrow 1$ iff $\mathsf{WinPrivacy}$ happens. Forward privacy for user identity requires that for all PPT $\mathcal{A}$, its advantage function $\mathsf{Adv}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}}$ satisfies
-\[
-\mathsf{Adv}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} := \left|\Pr\left[\mathsf{Exp}^{\mathsf{Privacy}}_{\mathsf{AKE},\mu,\ell,\mathcal{A}} \Rightarrow 1\right] - 1/2\right| \leq \mathsf{negl}(\lambda).
-\]
-\end{defn}
-
-\begin{rmk}[Difference with security models in~\cite{SSL20,RSW19}]
-In the security models in~\cite{SSL20,RSW19}, the initiator only deals with one responding message with accept or reject and does not take into account other users' responses. This feature excludes the application of their AKE schemes in broadcast channels or similar scenarios. In our security model, the initiator receives and processes all messages from other users. This is especially important in the scenario where every user may give a response when not aware whether itself is the target recipient. More precisely, in our security model, the adversarial behaviors are reflected by the formalization that $\mathcal{A}$ designates a list of messages for $\pi^s_i$ to deal with by $\mathsf{Send}$ or $\mathsf{Respond}$ queries. In comparison, the security models in~\cite{SSL20,RSW19} only consider the case that $\pi^s_i$ deals with a single message and after that $\pi^s_i$ will stop responding to other messages (from other users).
-\end{rmk}
-
-\begin{rmk}[The best forward privacy for robust AKE]
-The best forward privacy for a robust AKE scheme is full forward privacy for initiator and semi-forward privacy for responder. The reason is as follows. If the responder $P_j$ is corrupted, the robustness of AKE enables the adversary to use the responder's secret key to test the first round messages in previous sessions so as to determine whether $P_j$ is the intended recipient. Therefore, this is the optimal forward privacy for robust AKE to achieve: full forward privacy for initiator (no matter initiator or responder is corrupted) and forward privacy for responder when initiator is corrupted.
-\end{rmk}
-
+Observe that our model provides all attack queries present in the original Bellare–Rogaway model~\cite{C:BelRog93}.
+Moreover, it captures important variants involving secret key corruption. To model key compromise impersonation (KCI) attacks~\cite{C:Krawczyk05}, we permit the adversary to corrupt the holder of the Test-oracle at any time.
+Allowing corruption of the long-term keys of oracles (subject to the usual trivial-attack restrictions) models (full) perfect forward secrecy.
+Finally, because no restriction is placed on the relationship between the initiator’s and responder’s key material, our model also considers reflection attacks~\cite{C:Krawczyk05}, where a party communicates with itself (e.g., two devices sharing the same long-term secret).
 
 % -----------------------------------------------------------------------
-% §7 Security Proof (from main-Full.tex)
+% §7 Security Proof
 % -----------------------------------------------------------------------
 \section{Security Proof}
-We prove that PQ-Aliro is secure in the Bellare-Rogaway-style AKE security model.
-%\newcommand{\etalchar}[1]{$^{#1}$}
+\label{sec:proof}
+We prove that PQ-Aliro is secure in the above security model.
+
+\begin{theorem}
+    Let $n$ be the number of parties and $t$ be the number of sessions per party.
+    Assume the signature is EUF-CMA-secure, the HKDF is PRF-secure, the KEM is IND-1CCA secure.
+    Then, for any PPT adversary $\adv$ against the PQ-Aliro protocol, we have
+\begin{equation*}
+\resizebox{\linewidth}{!}{$\displaystyle
+\operatorname{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{sec}}(\adv, \lambda)
+\leq 2\cdot \operatorname{Adv}_{\mathsf{H}}^{\mathsf{coll}}(\mathcal{B}_{1}, \lambda)
++ 2n^{2} t^{2} \cdot \bigl( \operatorname{Adv}_{\mathsf{PRF}}^{\mathsf{PRF}\text{-}\mathsf{sec}}(\mathcal{B}_{4}, \lambda)
++ \operatorname{Adv}_{\kem}^{\mathsf{IND}\text{-}\mathsf{1CCA}}(\mathcal{B}_{3},\lambda)\bigr)
++ 2n^{2} t \cdot \operatorname{Adv}_{\mathsf{SIG}}^{\mathsf{EUF}\text{-}\mathsf{CMA}}(\mathcal{B}_{2}, \lambda)
++ \mathrm{Adv}_{\mathsf{AEAD}}^{\mathsf{AEAD}\text{-}\mathsf{sec}}(\mathcal{B}_{5},\lambda)
+$}
+\end{equation*}
+where $\mathcal{B}_{1}$--$\mathcal{B}_{5}$ are adversaries against, respectively, collision resistance of $\mathsf{H}$, EUF-CMA of $\mathsf{SIG}$, IND-1CCA of $\kem$, PRF of $\hkdf$, and AEAD security.
+\end{theorem}
+
+\noindent\textit{Proof sketch.}
+We distinguish between two adversary types:
+    \begin{itemize}
+        \item The \emph{initiator} adversary $\adv_{\sf init}$, whose goal is to correctly guess the outcome of $\mathsf{Test}(\pi_{i}^{s}, m)$ when $\pi_{i}^{s}$ plays the initiator role;
+        \item The \emph{responder} adversary $\adv_{\sf resp}$, which wins by predicting the result of $\mathsf{Test}(\pi_{i}^{s}, m)$ for a responder session $\pi_{i}^{s}$.
+    \end{itemize}
+We prove that all derived keys are pseudorandom and the privacy preserving property of the user device identity.
+The argument builds upon the anonymous key-exchange paradigm enhanced with digital signatures for identity authentication.
+% Then we show that no indeitity information of the User Device is reveal from the ciphertext since the security of the AEAD scheme.
+
+\begin{proof}
+
+    Let $\adv_{\sf init}$ be any probabilistic polynomial-time initiator adversary attacking the PQ-Aliro protocol depicted in Figure~\ref{high-level ake2}. Then it is obvious that
+    $$    \operatorname{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{sec}}(\adv_{\mathsf{init}}, \lambda)
+    \leq \mathrm{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{key}}(\adv_{\sf init},\lambda) + \mathrm{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{pp}}(\adv_{\sf init},\lambda),
+    $$
+where $\mathrm{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{key}}(\adv_{\sf init},\lambda)$ and $\mathrm{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{pp}}(\adv_{\sf init},\lambda)$ are the advntage of $\adv$ in winning the AKE security game defined in Definition~\ref{ake sec game} by correctly answering $\mathsf{Test}(\cdot, \mathsf{KEY})$ and $\mathsf{Test}(\cdot, \mathsf{ID})$, respectively.
+
+
+Next we need to prove Lemma~\ref{initiator lemma1} and Lemma~\ref{tracking resilience}.
+
+\begin{lemma}
+    \label{initiator lemma1}
+    Let $\adv_{\sf init}$ be any probabilistic polynomial-time adversary attacking the PQ-Aliro protocol depicted in Figure~\ref{high-level ake2}. Then  the probability that $\adv_{\sf init}$ answers $\mathsf{Test}(\cdot, \mathsf{KEY})$-challenge correctly is no more than $\frac{1}{2} + \mathrm{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{key}}(\adv_{\sf init},\lambda)$, where
+\begin{equation*}
+\resizebox{\linewidth}{!}{$\displaystyle
+\mathrm{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{key}}(\adv_{\sf init},\lambda)
+\leq 2\cdot \operatorname{Adv}_{\mathsf{H}}^{\mathsf{coll}}(\mathcal{B}_{1}, \lambda)
++ 2n^{2} t^{2} \cdot \bigl( \operatorname{Adv}_{\mathsf{PRF}}^{\mathsf{PRF}\text{-}\mathsf{sec}}(\mathcal{B}_{4}, \lambda)
++ \operatorname{Adv}_{\kem}^{\mathsf{IND}\text{-}\mathsf{1CCA}}(\mathcal{B}_{3},\lambda)\bigr)
++ 2n^{2} t \cdot \operatorname{Adv}_{\mathsf{SIG}}^{\mathsf{EUF}\text{-}\mathsf{CMA}}(\mathcal{B}_{2}, \lambda)
+$}
+\end{equation*}
+where $\mathcal{B}_{1}$--$\mathcal{B}_{4}$ are adversaries against collision resistance of $\mathsf{H}$, EUF-CMA of $\mathsf{SIG}$, IND-1CCA of $\kem$, and PRF of $\hkdf$.
+    \end{lemma}
+    We define a sequence of games between the adversary $\adv$ and the challenger $\mathcal{C}$, where the challenger runs the PQ-Aliro protocol in the first game, bounding the differences between games via a series of assumptions.
+    In the end, we demonstrate that $\adv$'s advantage in winning the final game is 0.
+    Let $\textsf{Adv}_{i}$ denote the advantage of $\adv$ in the Game $i$, where $i = 1,2, \cdots$.
+
+    \smallskip\noindent\textbf{Game 0.}
+    This game is exactly the AKE security experiment of Definition~\ref{ake sec game}. Consequently,
+        \begin{equation}
+            \mathrm{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{key}}(\adv_{\sf init},\lambda) = \mathsf{Adv}_{0}.
+        \end{equation}
+    
+    \noindent\textbf{Game 1.}
+    The challenger halts if two honest sessions produced an identical hash value from distinct inputs. If such a collision appear, we immediately obtain an adversary $\mathcal{B}_1$ breaking the collision resistance of $\mathsf{H}$ by outputting the two colliding preimages. Hence,
+        \begin{equation}
+            |\mathsf{Adv}_{0} - \mathsf{Adv}_{1}| \leq \mathrm{Adv}_{\mathsf{H}}^{\mathsf{coll}}(\mathcal{B}_{1}, \lambda).
+        \end{equation}
+
+    \smallskip\noindent\textbf{Game 2.}
+    We now guess the initiator session and its intended peer that will be tested. The challenger samples $(i^\ast, s^\ast, j^\ast) \sample [n] \times [t] \times [n]$ uniformly at random. It aborts if the adversary’s $\textsf{Test}$ query does not match $(\pi_{i^\ast}^{s^\ast}, j^\ast)$, i.e., if $(i,s) \neq (i^\ast, s^\ast)$, or if $\pi_{i^\ast}^{s^\ast}$ is not an initiator, or if its peer is not $j^\ast$. We have
+        \begin{equation}
+            \mathsf{Adv}_{1} \leq n^{2} t \cdot \mathsf{Adv}_{2}.
+        \end{equation}
+    
+    \smallskip\noindent\textbf{Game 3.}
+    We define the event $\textsf{Forge}$: the initiator session $\pi_{i^\ast}^{s^\ast}$ accepts a valid signature $\sigma^\ast$ from party $j^\ast$, yet no responder oracle of $j^\ast$ ever generated that signature.
+    In this game the challenger aborts upon $\textsf{Forge}$. \textbf{Games~2} and \textbf{Game~3} are identical until $\textsf{Forge}$ occurs, so
+        \begin{equation}
+        \label{g3-1}
+            |\mathsf{Adv}_{2} - \mathsf{Adv}_{3}| \leq \Pr[\textsf{Forge}].
+        \end{equation}
+
+We bound $\Pr[\textsf{Forge}]$ by constructing an EUF-CMA forger $\mathcal{B}_{2}$ against the signature scheme. $\mathcal{B}_{2}$ receives a challenge public key $\pk^\ast$ and sets $\pk_{j^\ast} \gets \pk^\ast$ for the intended peer. All other key pairs are generated honestly. $\mathcal{B}_{2}$ runs the AKE environment for $\adv$, forwarding signing requests for $\pk_{j^\ast}$ to its own signing oracle. If $\adv$ ever produces a valid signature under $\pk_{j^\ast}$ on a fresh message (the transcript prevents replays because hash collisions are already excluded), $\mathcal{B}_{2}$ submits it as a forgery. Therefore,
+        \begin{equation}
+        \label{g3-2}
+        \text{Pr}[\textsf{Forge}] \leq \mathrm{Adv}_{\mathsf{SIG}}^{\mathsf{EUF}\text{-}\mathsf{CMA}}(\mathcal{B}_{2}, \lambda).
+        \end{equation}
+
+Combining (\ref{g3-1}) and (\ref{g3-2}) yields
+\begin{equation}
+    |\mathsf{Adv}_{2} - \mathsf{Adv}_{3}| \leq \mathrm{Adv}_{\mathsf{SIG}}^{\mathsf{EUF}\text{-}\mathsf{CMA}}(\mathcal{B}_{2}, \lambda).
+\end{equation}
+
+From now on we may assume that all signatures received by the initiator were actually generated by the intended responder session.
+
+\smallskip\noindent\textbf{Game 4.}
+We further guess the specific responder oracle $\pi_{j^\ast}^{t^\ast}$ of $P_{j^\ast}$ that issued the signature accepted by $\pi_{i^\ast}^{s^\ast}$. Since at most $t$ sessions exist per party, we obtain
+\begin{equation}
+        \mathsf{Adv}_{3} \leq t \cdot \mathsf{Adv}_{4}.
+    \end{equation}
+
+\smallskip\noindent\textbf{Game 5.}
+In this game, we replace the ephemeral shared secret $K_{e}$ in session $\pi_{j^\ast}^{t^\ast}$ by a uniformly random $\widetilde{K}_{e}$. If $\pi_{i^\ast}^{s^\ast}$ receives the same ciphertext $c_{e}$ that $\pi_{j^\ast}^{t^\ast}$ sent, its $K_{e}$ is also set to $\widetilde{K}_{e}$.
+If the adversary $\adv$ can detect this change with non-negligible probability, then we can build an adversary $\mathcal{B}_{3}$ that breaks the IND-1CCA security of $\kem$ with non-negligible probability as follows.
+
+$\mathcal{B}_{3}$ obtains a challenge $({pk}^*, c^*, K^*)$ from its challenger.
+It embeds ${pk}^*$ as ${pk}_{e}$ of the target sessions, sets $c_{e} \gets c^*$ in $\pi_{j^\ast}^{t^\ast}$, and uses $K^*$ as the derived $K_{e}$.
+If $\adv$ delivers $c^*$ faithfully, $\mathcal{B}_{3}$ assigns the same $K^*$ to $\pi_{i^\ast}^{s^\ast}$; otherwise it queries its decapsulation oracle on the modified ciphertext. When $K^*$ is the real key the view of the adversary matches \textbf{Game~4}, and when $K^*$ is random the view matches \textbf{Game~5}. Thus,
+\begin{equation}
+    |\mathsf{Adv}_{4} - \mathsf{Adv}_{5}| \leq \mathrm{Adv}_{\kem}^{\textsf{IND-1CCA}}(\mathcal{B}_{3},\lambda).
+\end{equation}
+
+\smallskip\noindent\textbf{Game 6.}
+Next, the final session key $K = \mathsf{HKDF.Expand}(\mathsf{HS}, \textit{trans})$ is replaced by a random $K^*$. When both $\pi_{i^\ast}^{s^\ast}$ and $\pi_{j^\ast}^{t^\ast}$ compute the same handshake secret $\mathsf{HS}$, we also set the responder’s output to $K^*$. A distinguisher between \textbf{Game~5} and \textbf{Game~6} yields an adversary $\mathcal{B}_{4}$ against the pseudorandomness of $\mathsf{HKDF}$. Therefore, we have
+\begin{equation}
+    |\mathsf{Adv}_{5} - \mathsf{Adv}_{6}| \leq \mathrm{Adv}_{\mathsf{HKDF}}^{\mathsf{PRF}\text{-}\mathsf{sec}}(\mathcal{B}_{4},\lambda).
+\end{equation}
+Moreover, in \textbf{Game 6}, the $\textsf{Test}$ query always returns a uniformly random key, so we have 
+\begin{equation}
+    \mathsf{Adv}_{6} = 0.
+\end{equation}
+
+Combining the above security bounds, we have:
+\begin{equation*}
+\resizebox{\linewidth}{!}{$\displaystyle
+\mathrm{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{key}}(\adv_{\sf init},\lambda)
+\leq \operatorname{Adv}_{\mathsf{H}}^{\mathsf{coll}}(\mathcal{B}_{1}, \lambda)
++ n^{2} t \cdot \Big[
+t\cdot \big(\operatorname{Adv}_{\mathsf{PRF}}^{\mathsf{PRF}\text{-}\mathsf{sec}}(\mathcal{B}_{4}, \lambda)
++ \operatorname{Adv}_{\kem}^{\mathsf{IND}\text{-}\mathsf{1CCA}}(\mathcal{B}_{3},\lambda)\big)
++ \operatorname{Adv}_{\mathsf{SIG}}^{\mathsf{EUF}\text{-}\mathsf{CMA}}(\mathcal{B}_{2}, \lambda)
+\Big]
+$}
+\end{equation*}
+
+Next, we prove the tracking resilience property of PQ-Aliro.
+
+\begin{lemma}
+\label{tracking resilience}
+    For any PPT adversary $\adv_{\sf init}$ against the PQ-Aliro protocol in Figure~\ref{high-level ake2}, the probability that $\adv_{\sf init}$ answers the $\mathsf{Test}(\cdot,\mathsf{ID})$-challenge of some oracle correctly is at most $\frac{1}{2} + \mathrm{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{pp}}(\adv_{\sf init},\lambda)$ with
+    \begin{equation*}
+\resizebox{\linewidth}{!}{$\displaystyle
+\begin{aligned}
+\mathrm{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{pp}}(\adv_{\sf init},\lambda)
+&\leq \operatorname{Adv}_{\mathsf{H}}^{\mathsf{coll}}(\mathcal{B}_{1}, \lambda)
++ n^{2} t^{2}
+\cdot \big( \operatorname{Adv}_{\mathsf{PRF}}^{\mathsf{PRF}\text{-}\mathsf{sec}}(\mathcal{B}_{4}, \lambda)
++ \operatorname{Adv}_{\kem}^{\mathsf{IND}\text{-}\mathsf{1CCA}}(\mathcal{B}_{3},\lambda)\big) \\
+&\quad + n^{2} t \cdot \operatorname{Adv}_{\mathsf{SIG}}^{\mathsf{EUF}\text{-}\mathsf{CMA}}(\mathcal{B}_{2}, \lambda) + \mathrm{Adv}_{\mathsf{AEAD}}^{\mathsf{AEAD}\text{-}\mathsf{sec}}(\mathcal{B}_{5},\lambda),
+\end{aligned}$}
+\end{equation*}
+    where  $\mathcal{B}_{1}, \mathcal{B}_{2}, \mathcal{B}_{3}, \mathcal{B}_{4}$ and $\mathcal{B}_{5}$ denote, respectively, adversaries against the collision resistance of $\mathsf{H}$, the EUF-CMA security of $\mathsf{SIG}$, the IND-1CCA security of $\kem$, the PRF security of $\hkdf$ and the security of $\mathsf{AEAD}$.
+\end{lemma}
+
+\begin{proof}
+    The privacy of the responder identity corresponds to the key used for AEAD.
+    Therefore, we start-off with the security game after \textbf{Game 6} in the proof of Lemma~\ref{initiator lemma}.
+
+    \smallskip\noindent\textbf{Game 0.}
+    In this game, we extend \textbf{Game 6} in the proof of Lemma~\ref{initiator lemma}.
+    We have
+    \begin{equation*}
+\resizebox{\linewidth}{!}{$\displaystyle
+\begin{aligned}
+\textrm{Adv}_{0}
+&\leq \operatorname{Adv}_{\mathsf{H}}^{\mathsf{coll}}(\mathcal{B}_{1}, \lambda)
++ n^{2} t^{2}
+\cdot \big( \operatorname{Adv}_{\mathsf{PRF}}^{\mathsf{PRF}\text{-}\mathsf{sec}}(\mathcal{B}_{4}, \lambda)
++ \operatorname{Adv}_{\kem}^{\mathsf{IND}\text{-}\mathsf{1CCA}}(\mathcal{B}_{3},\lambda)\big) \\
+&\quad + n^{2} t \cdot \operatorname{Adv}_{\mathsf{SIG}}^{\mathsf{EUF}\text{-}\mathsf{CMA}}(\mathcal{B}_{2}, \lambda).
+\end{aligned}$}
+\end{equation*}
+
+    After \textbf{Game 0}, the encryption key for $\mathsf{AEAD}$ is chosen at uniformly random by the $\mathsf{Test}$-oracle $\pi_{i^*}^{s^*}$.
+
+    \smallskip\noindent\textbf{Game 1.}
+    In this game, we replace $d = d_{j^*}^{t^*}$ with $d'=d_{j^*}^{t^*} \oplus 1$, and replace the signature generated by the responder that was constructed using ${sk}_{i^*}^{(d)}$ by a signature that uses the other secret key ${sk}_{i^*}^{(d')}$.
+    If the adversary can distinguish \textbf{Game 1} from \textbf{Game 0}, then we can construct another adversary $\mathcal{B}_{5}$ that breaks the security of $\mathsf{AEAD}$.
+    $\mathcal{B}_{5}$ sets $m_0 \gets ({pk}_{\mathsf{UD}} || \sigma_\mathsf{UD})$ which corresponds to $\mathsf{ID}_{d}$, and $m_1 \gets ({pk}_{\mathsf{UD}} || \sigma_\mathsf{UD})$ which corresponds to $\mathsf{ID}_{d'}$.
+    Then $\mathcal{B}_{5}$ sends $m_0,m_1$ to its challenger in the security experiment of $\mathsf{AEAD}$.
+    Upon receiving the ciphertext $c^*$ from the challenger, $\mathcal{B}_{5}$ sets $c^*$ as the \textsf{AUTH1 response} message of $\pi_{j^*}^{t^*}$.
+    $\mathcal{B}_{5}$ generates $b\sample \{0,1\}$, computes $w\gets d_{j^*}^{t^*}\oplus b$ and set $w$ as the response to $\mathsf{Test}(\pi_i^s, \mathsf{ID})$.
+    After receiving $b'$ from $\adv$, $\mathcal{B}_{5}$ returns $w\oplus b'$ to its challenger.
+    We have
+    $$
+    \mathrm{Adv}_{0} \leq \mathrm{Adv}_{1} + \mathrm{Adv}_{\mathsf{AEAD}}^{\mathsf{AEAD}\text{-}\mathsf{sec}}(\mathcal{B}_{5},\lambda).
+    $$
+
+    In \textbf{Game 1}, since the responder identity has been replaced, the adversary has no advantage in winning the security game.
+    Therefore, we have
+    $$
+    \mathrm{Adv}_{1} = 0.
+    $$
+
+    In conclusion, we have
+    \begin{equation*}
+\resizebox{\linewidth}{!}{$\displaystyle
+\begin{aligned}
+\textrm{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{pp}}(\adv,\lambda)
+&\leq \operatorname{Adv}_{\mathsf{H}}^{\mathsf{coll}}(\mathcal{B}_{1}, \lambda)
++ n^{2} t^{2}
+\cdot \big( \operatorname{Adv}_{\mathsf{PRF}}^{\mathsf{PRF}\text{-}\mathsf{sec}}(\mathcal{B}_{4}, \lambda)
++ \operatorname{Adv}_{\kem}^{\mathsf{IND}\text{-}\mathsf{1CCA}}(\mathcal{B}_{3},\lambda)\big) \\
+&\quad + n^{2} t \cdot \operatorname{Adv}_{\mathsf{SIG}}^{\mathsf{EUF}\text{-}\mathsf{CMA}}(\mathcal{B}_{2}, \lambda) + \mathrm{Adv}_{\mathsf{AEAD}}^{\mathsf{AEAD}\text{-}\mathsf{sec}}(\mathcal{B}_{5},\lambda).
+\end{aligned}$}
+\end{equation*}
+\end{proof}
+
+For \textsf{Responder}-adversary, we have the following lemma.
+
+\begin{lemma}
+    \label{initiator lemma}
+    Let $\adv_{\sf resp}$ be any probabilistic polynomial-time responder adversary attacking the PQ-Aliro protocol depicted in Figure~\ref{high-level ake2}. Then
+    \begin{equation*}
+\resizebox{\linewidth}{!}{$\displaystyle
+\begin{aligned}
+\operatorname{Adv}_{\mathsf{PQ}\text{-}\mathsf{Aliro}}^{\mathsf{AKE}\text{-}\mathsf{sec}}(\adv_{\mathsf{resp}}, \lambda)
+    &\leq 2\cdot \operatorname{Adv}_{\mathsf{H}}^{\mathsf{coll}}(\mathcal{B}_{1}, \lambda)
+    + 2n^{2} t^{2}
+    \cdot \big( \operatorname{Adv}_{\mathsf{PRF}}^{\mathsf{PRF}\text{-}\mathsf{sec}}(\mathcal{B}_{4}, \lambda)
+    + \operatorname{Adv}_{\kem}^{\mathsf{IND}\text{-}\mathsf{1CCA}}(\mathcal{B}_{3},\lambda)\big) \\
+    &\quad + 2n^{2} t \cdot \operatorname{Adv}_{\mathsf{SIG}}^{\mathsf{EUF}\text{-}\mathsf{CMA}}(\mathcal{B}_{2}, \lambda) + \mathrm{Adv}_{\mathsf{AEAD}}^{\mathsf{AEAD}\text{-}\mathsf{sec}}(\mathcal{B}_{5},\lambda),
+\end{aligned}$}
+\end{equation*}
+where  $\mathcal{B}_{1}, \mathcal{B}_{2}, \mathcal{B}_{3}, \mathcal{B}_{4}$ and $\mathcal{B}_{5}$ denote, respectively, adversaries against the collision resistance of $\mathsf{H}$, the EUF-CMA security of $\mathsf{SIG}$, the IND-1CCA security of $\kem$, the PRF security of $\hkdf$ and the security of $\mathsf{AEAD}$.
+    \end{lemma}
+
+The proof proceeds with the same game-hopping strategy, swapping the roles of initiator and responder in the reduction arguments. We omit the repetitive details.
+
+\end{proof}
 
 % -----------------------------------------------------------------------
 % §8 Implementation
@@ -1011,25 +1125,30 @@ A compromised main process could therefore read the private key from heap
 memory at any point between key generation and GC collection.
 
 To eliminate this attack surface, the UD delegates all Dilithium signing to a
-dedicated \texttt{PQCSignatureService} that is declared with the Android
-manifest attribute \texttt{android:isolatedProcess="true"}.
-An isolated process runs in a separate Linux process with a distinct address
-space, a separate UID, and no file-system access beyond its own
-content-provider interface.
+dedicated \texttt{PQCSignatureService} that runs in a separate named process
+declared with the Android manifest attribute \texttt{android:process=":pqc\_signer"}.
+A named process runs in a separate Linux process with its own address space
+and shares the application's UID, but physically isolates all private-key
+operations from the main process's memory.
+This is distinct from \texttt{android:isolatedProcess="true"}, which would
+assign a distinct UID and deny file-system access; the named-process approach
+is used here because \texttt{PQCSignatureService} requires access to
+\texttt{SharedPreferences} for encrypted key retrieval.
 The main process sends the message bytes to be signed over a Binder IPC
 interface; \texttt{PQCSignatureService} loads the encrypted private key (see
 below), performs the signing operation entirely within its own address space,
 returns the 3\,309-byte signature over the same Binder channel, and
 immediately calls \texttt{Process.killProcess(Process.myPid())} to terminate
-itself.
-Because the entire lifecycle of the isolated process---from private key
+itself, limiting the key-exposure window to the duration of a single signing invocation (typically $\le$\,150\,ms on mid-range Android hardware).
+Because the entire lifecycle of the named process---from private key
 loading to process exit---is bounded to a single signing call, the Dilithium
-private key material never appears in the main application's address space and
-is forcibly reclaimed by the OS when the isolated process terminates.
+private key material never appears in the main application's address space.
+A crash or compromise of the main process cannot access the signing key
+held in the \texttt{:pqc\_signer} address space.
 
 \paragraph{Persistent key storage.}
 The Dilithium private key cannot be stored in Android Keystore directly.
-Instead, it is stored in \texttt{SharedPreferences} encrypted under AES-256-GCM:
+Instead, it is stored in \texttt{SharedPreferences} encrypted under AES-256-GCM~\cite{NIST:SP80038D}:
 the raw private key bytes are encrypted once at provisioning time
 (\texttt{KEY\_KYB\_PRIV\_CT} stores the ciphertext, \texttt{KEY\_KYB\_PRIV\_IV}
 stores the GCM IV), and the 256-bit AES wrapping key is held in Android
@@ -1109,7 +1228,7 @@ Each test configuration exercises 20 assertions covering: (i) KEM
 correctness---that the shared secret $S_e$ recovered by the Reader via
 \texttt{KEMExtractSpec} matches the value encapsulated by the UD; (ii)
 transcript hash consistency---that $\mathit{transAH0} =
-\mathrm{SHAKE256\text{-}512}(\mathit{AUTH0\_cmd} \mathbin{\|} \mathit{AUTH0\_resp})$
+\mathrm{SHAKE256\text{-}512}(\mathit{AUTH0\_cmd} \mathbin{\|} \mathit{AUTH0\_resp})$~\cite{NIST:FIPS202}
 is identical on both sides; (iii) KDF consistency---that
 $\mathit{SK\_device}$ derived by both parties is identical;
 (iv) AEAD round-trip correctness; (v) ML-DSA signature verification in both
@@ -1119,11 +1238,14 @@ and reassembly pipeline.
 All 20 assertions pass across all nine parameter combinations, confirming
 the correctness of the implementation for the full range of NIST security
 levels supported by PQ-Aliro~\cite{NIST3PQC:Lima21}.
+In addition to the positive assertions, the harness includes negative test cases that verify protocol abort upon: (a)~a tampered transcript hash in the AUTH1 Command, (b)~an invalid ML-KEM ciphertext in the AUTH0 Response, and (c)~a forged ML-DSA-65 signature on the Reader certificate.
 
 
 % -----------------------------------------------------------------------
 % §9 Evaluation
 % -----------------------------------------------------------------------
+These implementation results provide the foundation for the quantitative communication-overhead analysis and NFC latency estimates presented in the following section.
+
 \section{Evaluation}
 \label{sec:evaluation}
 
@@ -1194,7 +1316,7 @@ AUTH1 Response  & 23   & 5{,}289   & 5{,}335   \\
 \end{table}
 
 \paragraph{Comparison with ECC Aliro.}
-The classical ECC Aliro flow (Curve P-256) transfers approximately 1.2\,KB
+The classical ECC Aliro flow (Curve P-256) transfers approximately 1.2\,KB (comprising an ephemeral ECDH public key 65\,B, an ECDSA signature $\approx$72\,B, a P-256 certificate $\approx$1\,000\,B, and framing overhead across $\approx$8\,APDUs, totalling $\approx$1.2\,KB)
 per transaction: an EC ephemeral public key of 65\,B, an ECDSA signature of
 roughly 72\,B, and the long-term certificate.  PQ-Aliro (D3\,$\times$\,K768)
 incurs approximately $16.4/1.2 \approx \mathbf{14\times}$ more link bytes.
@@ -1245,6 +1367,9 @@ ML-DSA-87 $\times$ ML-KEM-1024 & 5 & 102 & $\approx$23.2\,KB \\
 
 %-----------------------------------------------------------------------
 \subsection{NFC Transmission Latency}
+
+\noindent\textbf{Note.} All latency figures in this subsection are theoretical estimates derived from link-byte counts and published NFC bit-rate specifications; no physical NFC testbed measurement was performed. Figures represent lower bounds on total transaction time; see Section~\ref{subsec:limitations} for the scope of empirical validation.
+
 \label{sec:eval:latency}
 
 \paragraph{Physical-layer model.}
@@ -1255,6 +1380,17 @@ higher rates scale quasi-linearly with modest additional framing
 costs~\cite{CSA:Aliro10}.  Android HCE typically negotiates 424\,kbit/s
 with compatible readers, making this the expected operating point for
 smartphone-based access control deployments.
+
+\paragraph{Methodology and scope of estimates.}
+The latency figures in Table~\ref{tab:latency} account for bit-transmission time
+(total link bytes divided by bit rate) only.
+Per-APDU round-trip overhead---including ISO/IEC~14443-4~\cite{ISOIEC14443} Frame Waiting Time (FWT) and Reader polling intervals---is not included;
+for a 75-APDU exchange these round-trip costs can add several hundred milliseconds
+on real hardware.
+Additionally, the implementation's asynchronous signing mechanism
+introduces a fixed 500\,ms polling interval per signing cycle (one cycle per AUTH1
+Command), contributing an additional ${\approx}0.5$\,s to the real-device latency.
+Reported figures should therefore be treated as lower bounds on total transaction time.
 
 \paragraph{Transmission time estimates.}
 Table~\ref{tab:latency} reports estimated NFC transmission times for three
@@ -1284,7 +1420,7 @@ The transmission figures above must be augmented with on-device computation
 time.  On a mid-range Android device, ML-DSA-65 signature generation
 requires approximately 50–100\,ms and signature verification approximately
 5\,ms, consistent with results reported for the Kyber/Dilithium family on
-Android hardware~\cite{NIST3PQC:Lima21}.  ML-KEM encapsulation and
+Android hardware~\cite{NIST3PQC:Lima21,TCHES:BKHYY22}.  ML-KEM encapsulation and
 decapsulation each contribute a further $<$5\,ms.  Combining transmission
 and computation, the total expected latency for the default D3$\times$K768
 configuration at 424\,kbit/s falls in the range of \textbf{0.6–1.5\,s}.
@@ -1320,8 +1456,9 @@ threat model.
 
 \paragraph{NIST Level~3 (D3 configurations, 15.8–17.3\,KB).}
 The D3$\times$K768 configuration represents the Pareto-optimal balance
-between security and overhead.  It provides 128-bit post-quantum security
-for both the key-encapsulation and signature primitives, and its $\approx$16.4\,KB
+between security and overhead.  It provides NIST Security Level~3 (AES-192
+equivalent, approximately 96-bit post-quantum security) for both the
+key-encapsulation and signature primitives, and its $\approx$16.4\,KB
 footprint is manageable at 424\,kbit/s.  We adopt this as the \emph{default}
 for PQ-Aliro~\cite{NIST:FIPS203,NIST:FIPS204}.
 
@@ -1330,7 +1467,7 @@ The D5$\times$K1024 configuration offers the highest available security (256-bit
 post-quantum), at a cost of $+$41\% overhead relative to the default.  With
 an estimated 2.9\,s transmission time at 106\,kbit/s, this profile is
 impractical at the slowest NFC speed but fully viable at 424\,kbit/s
-($\approx$0.7\,s) and is recommended for high-assurance installations such
+($\approx$0.7\,s) and, assuming the theoretical latency estimates hold on real hardware, would be suitable for high-assurance installations such
 as data-centre access control or government facilities.
 
 \paragraph{Summary.}
@@ -1347,13 +1484,15 @@ the User Device.
 % -----------------------------------------------------------------------
 % §10 Discussion and Optimization
 % -----------------------------------------------------------------------
+The overhead figures above, together with the latency estimates, motivate the optimisation strategies and deployment trade-offs discussed in the following section.
+
 \section{Discussion and Optimization}
 \label{sec:discussion}
 
 \subsection{Optimization Strategies}
 \label{subsec:optimization}
 
-The default PQ-Aliro configuration (ML-DSA-65 $\times$ ML-KEM-768) incurs approximately 16.4\,KB across 75 APDU exchanges---roughly 14$\times$ the overhead of a classical ECC-based Aliro flow. We identify four complementary strategies that can substantially reduce this cost.
+The default PQ-Aliro configuration (ML-DSA-65 $\times$ ML-KEM-768) incurs approximately 16.4\,KB across 75 APDU exchanges---roughly 14$\times$ the overhead of a classical ECC-based Aliro flow. We identify three complementary strategies that can substantially reduce this cost.
 
 \textbf{LOADCERT Elimination via \texttt{key\_slot}.}
 The Aliro 1.0 specification~\cite{CSA:Aliro10} defines a \texttt{key\_slot} field that allows a User Device (UD) to reference a Reader certificate already stored in its credential store, bypassing the explicit \texttt{LOADCERT} exchange. Eliminating LOADCERT removes approximately 22 APDU exchanges and saves $\sim$5.5\,KB, reducing the total footprint to $\sim$11.2\,KB across 52 APDUs---a 32\,\% reduction. This strategy is well-suited to enterprise deployments where a fixed set of Readers is trusted and their Dilithium certificates can be pre-provisioned at enrollment time. The trade-off is operational: it requires an out-of-band certificate provisioning infrastructure and complicates Reader certificate rotation. Nevertheless, for high-frequency access scenarios such as corporate office doors, the latency benefit of skipping a 22-round sub-flow is significant.
@@ -1361,8 +1500,6 @@ The Aliro 1.0 specification~\cite{CSA:Aliro10} defines a \texttt{key\_slot} fiel
 \textbf{Downgrading to NIST Security Level~2.}
 FIPS~203~\cite{NIST:FIPS203} and FIPS~204~\cite{NIST:FIPS204} both specify parameter sets at Security Levels 2, 3, and 5. Switching from the Level-3 combination (ML-DSA-65 $\times$ ML-KEM-768) to the Level-2 combination (ML-DSA-44 $\times$ ML-KEM-512) yields a total overhead of $\sim$11.9\,KB---a 27\,\% saving over the default. This configuration is appropriate for lower-risk deployments (e.g., gym or library access) where the quantum threat horizon is more distant, but it is unsuitable for high-assurance use cases such as data-centre entry or government facilities, where Level-3 or Level-5 protection is warranted.
 
-\textbf{Falcon-512 as an Alternative Signature Scheme.}
-Falcon-512 produces signatures of approximately 690\,bytes, compared with 3309\,bytes for ML-DSA-65 under identical security guarantees. If both signature fields in the protocol---the Reader's \texttt{AUTH1} signature and the UD's \texttt{AUTH1 Response} signature---are replaced with Falcon-512, the two fields together save approximately 5.2\,KB. Combined with the LOADCERT elimination strategy, the cumulative overhead can approach $\sim$11.2\,KB. Falcon has been standardised by NIST as FIPS~206 (FN-DSA), lending it formal standing. However, Falcon key generation requires lattice Gaussian sampling, which is computationally demanding and has not yet been thoroughly benchmarked on mid-range Android devices. We therefore treat Falcon-512 integration as a promising but unvalidated direction for future work.
 
 \textbf{Profile0000 Certificate Compression.}
 The Aliro Profile0000 certificate uses a custom DER encoding that includes full Distinguished Name (DN) fields totalling approximately 200\,bytes. In scenarios where a \texttt{key\_slot} index is used in the \texttt{AUTH1 Response} instead of transmitting the UD's Dilithium public key inline, an additional $\sim$1.9\,KB can be saved. Further compression of the DN fields or adoption of a compact certificate format would provide incremental gains without compromising the authentication semantics defined in the Aliro specification~\cite{CSA:Aliro10}.
@@ -1383,6 +1520,33 @@ The ML-DSA-65 signing time of 50--100\,ms cited in Section~\ref{sec:evaluation} 
 
 \textbf{Certificate pre-provisioning complexity.}
 The LOADCERT-elimination optimisation assumes that the Credential Issuer can reliably pre-provision Reader certificates into each UD at enrollment time and keep them synchronised across certificate renewals. This requirement adds non-trivial infrastructure burden and may not be feasible in open-ended deployments where any compliant Reader should be able to interact with any UD without prior pairing.
+
+\textbf{Certificate revocation in key-slot mode.}
+The \texttt{key\_slot} optimisation pre-provisions Reader certificates on the User Device.
+No revocation mechanism is specified: if a Reader device is compromised or decommissioned,
+User Devices that have cached its certificate will continue to authenticate to it.
+Incorporating certificate status checks (e.g., OCSP stapling or short-lived certificates)
+within the NFC session would add overhead but is essential for enterprise deployments
+where Reader devices may be revoked.
+
+\textbf{Reader-side linkability.}
+Our tracking-resilience theorem (Section~\ref{sec:model}) captures \emph{User Device identity privacy} only; reader-side identity is explicitly outside the model's scope, because the \texttt{reader\_identifier} is transmitted in plaintext in the AUTH0 Command by design in the Aliro~1.0 specification~\cite{CSA:Aliro10}.
+The \texttt{reader\_identifier} field (32 bytes) is transmitted in plaintext within
+the \textsc{Auth0} Command, allowing a passive eavesdropper to correlate all NFC
+transactions at a fixed reader location. While the Aliro~1.0 specification~\cite{CSA:Aliro10}
+transmits this field unencrypted by design, it constitutes a form of reader-side
+linkability that our tracking-resilience model (Section~\ref{sec:design:kdf}) does not
+capture. Future work may consider deriving a session-specific reader pseudonym from
+the \texttt{transaction\_identifier} to mitigate this leakage.
+
+\textbf{Relay attack exposure.}
+PQ-Aliro, like all NFC-based access-control protocols, relies on the ISO/IEC~14443~\cite{ISOIEC14443}
+physical-layer range limit (${\approx}10$\,cm) rather than cryptographic distance-bounding
+to prevent relay attacks. A relay adversary who tunnels the NFC
+channel over a longer distance can open a door without the legitimate user's
+knowledge. The \texttt{transaction\_identifier} provides replay protection but
+not relay protection. Integrating distance-bounding mechanisms~\cite{CSA:Aliro10}
+or UWB ranging (available in the Aliro specification) would address this threat.
 
 \textbf{Single transport protocol.}
 The current implementation and analysis cover NFC (ISO/IEC~14443) exclusively. The Aliro specification also defines BLE and UWB transport paths, each with distinct frame-size constraints and session-key derivation flows. The overhead impact of PQC on those transports is an independent open question.
@@ -1405,7 +1569,7 @@ Extending PQC integration to the Aliro BLE and UWB flows---particularly the deri
 Exploring cross-specification interoperability with the CCC Digital Key 3.0 ecosystem~\cite{CCC:DigKey3} would clarify whether a unified PQC upgrade path is achievable across both standards, given their overlapping deployment contexts.
 
 \textbf{Key-slot provisioning protocol.}
-Designing and formalising a certificate pre-provisioning protocol that enables LOADCERT elimination at scale---with support for certificate rotation and revocation---would make this optimisation deployable in real enterprise access-control infrastructures.
+Designing and formalising a certificate pre-provisioning protocol that enables LOADCERT elimination at scale---with support for certificate rotation and revocation---would make this optimisation deployable in real enterprise access-control infrastructures. The core formalisation challenge is modelling pre-provisioned Reader certificates within the AKE security game: the LOADCERT round must be replaced by a certificate-registration oracle capturing both correctness (the UD accepts only certificates from authorised issuers) and privacy (pre-provisioned certificates do not leak Reader-UD pairing history). Certificate rotation and revocation in this model remain open problems.
 
 
 % -----------------------------------------------------------------------
@@ -1420,11 +1584,11 @@ the classical primitives with NIST-standardised counterparts: ECDH is superseded
 ML-KEM-768 and ECDSA by ML-DSA-65~\cite{NIST:FIPS203,NIST:FIPS204},
 while session confidentiality is maintained by HKDF (HMAC-SHA256 + HKDF-Expand) and
 AES-256-GCM.
-Under a Bellare--Rogaway-style security model we proved that PQ-Aliro achieves mutual
-authentication, forward secrecy, and identity privacy.
+Within the AKE security model of Sch{\"a}ge et al.~\cite{PKC:SchSchLau20}, we prove that PQ-Aliro achieves mutual authentication, forward secrecy (under long-term key corruption), and identity privacy, with the security bound reducing to the IND-1CCA security of ML-KEM-768, the EUF-CMA security of ML-DSA-65, the PRF security of HKDF, and the AEAD security of AES-256-GCM. The use of IND-1CCA---a weaker assumption than IND-CCA2---is sufficient because PQ-Aliro performs exactly one KEM encapsulation per session, yielding a tighter security reduction than a full CCA2-based proof would provide.
 A full open-source implementation targeting Android HCE and a PC NFC Reader was
 developed using BouncyCastle 1.78 BCPQC, and an end-to-end test suite comprising
 20 assertions across nine PQC configurations passed without exception.
+Key engineering findings---Dilithium private-key isolation inside a dedicated Android named process with immediate self-termination, and asynchronous ML-DSA signing to prevent HCE main-thread deadlock---are documented for the benefit of practitioners porting lattice-based protocols to Android HCE environments.
 
 The principal cost of this upgrade is communication overhead.
 The default D3$\times$K768 configuration exchanges approximately 16.4\,KB across
