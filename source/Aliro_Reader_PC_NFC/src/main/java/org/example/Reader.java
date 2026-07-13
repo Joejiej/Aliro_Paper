@@ -17,6 +17,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.X509Certificate;
+import javax.crypto.SecretKey;
 import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.util.encoders.Hex;
 
@@ -98,6 +99,7 @@ public class Reader {
             System.out.println("5. Test LOADCERT Command");
             System.out.println("6. Test AUTH1 Command");
             System.out.println("7. Full Protocol test");
+            System.out.println("9. Benchmark (5 iterations, real timing)");
             System.out.println("0. Exit");
             System.out.print("Choose option: ");
 
@@ -129,6 +131,9 @@ public class Reader {
                         break;
                     case 8:
                         testCustomCommand(scanner);
+                        break;
+                    case 9:
+                        testFullProtocolBenchmark(5);
                         break;
                     case 0:
                         disconnect();
@@ -335,6 +340,61 @@ public class Reader {
         Thread.sleep(500);
         testAUTH1();
     }
+
+    // -----------------------------------------------------------------------
+    // Benchmark: measure real end-to-end latency over N iterations
+    // -----------------------------------------------------------------------
+    private void testFullProtocolBenchmark(int iterations) throws Exception {
+        String config = (PQCConfig.isPQ()
+                ? "D" + PQCConfig.DILITHIUM_LEVEL + "×K" + PQCConfig.KYBER_LEVEL
+                : "ECC-Classic");
+        System.out.println("\n=== BENCHMARK: " + config + " (" + iterations + " iterations) ===");
+        System.out.println("Phase,Iter,ms");
+
+        long[] auth0ms     = new long[iterations];
+        long[] loadcertms  = new long[iterations];
+        long[] auth1ms     = new long[iterations];
+        long[] totalms     = new long[iterations];
+
+        for (int i = 0; i < iterations; i++) {
+            System.out.println("--- Iter " + (i + 1) + "/" + iterations + " ---");
+
+            long txStart = System.currentTimeMillis();
+
+            long t0 = System.currentTimeMillis();
+            testAUTH0();
+            auth0ms[i] = System.currentTimeMillis() - t0;
+            System.out.printf("AUTH0,%d,%d%n", i + 1, auth0ms[i]);
+
+            long t1 = System.currentTimeMillis();
+            testLOADCERT();
+            loadcertms[i] = System.currentTimeMillis() - t1;
+            System.out.printf("LOADCERT,%d,%d%n", i + 1, loadcertms[i]);
+
+            long t2 = System.currentTimeMillis();
+            testAUTH1();
+            auth1ms[i] = System.currentTimeMillis() - t2;
+            System.out.printf("AUTH1,%d,%d%n", i + 1, auth1ms[i]);
+
+            totalms[i] = System.currentTimeMillis() - txStart;
+            System.out.printf("TOTAL,%d,%d%n", i + 1, totalms[i]);
+
+            if (i < iterations - 1) Thread.sleep(300); // brief reset pause
+        }
+
+        // Summary
+        System.out.println("\n=== RESULTS: " + config + " ===");
+        System.out.printf("Phase      | min(ms) | max(ms) | avg(ms)%n");
+        System.out.printf("AUTH0      | %7d | %7d | %7d%n", bmMin(auth0ms),    bmMax(auth0ms),    bmAvg(auth0ms));
+        System.out.printf("LOADCERT   | %7d | %7d | %7d%n", bmMin(loadcertms), bmMax(loadcertms), bmAvg(loadcertms));
+        System.out.printf("AUTH1      | %7d | %7d | %7d%n", bmMin(auth1ms),    bmMax(auth1ms),    bmAvg(auth1ms));
+        System.out.printf("TOTAL      | %7d | %7d | %7d%n", bmMin(totalms),    bmMax(totalms),    bmAvg(totalms));
+        System.out.printf("Config: %s%n", config);
+    }
+
+    private static long bmMin(long[] a) { long m = a[0]; for (long v : a) if (v < m) m = v; return m; }
+    private static long bmMax(long[] a) { long m = a[0]; for (long v : a) if (v > m) m = v; return m; }
+    private static long bmAvg(long[] a) { long s = 0; for (long v : a) s += v; return s / a.length; }
 
     private void testCustomCommand(Scanner scanner) throws CardException {
         if (!ensureConnected()) return;

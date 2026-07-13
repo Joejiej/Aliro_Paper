@@ -75,34 +75,42 @@ A full prototype is implemented on Android HCE and a PC NFC reader using BouncyC
 BCPQC; an end-to-end test suite of 20 assertions covering 9 PQC configurations passes
 without error.
 The default configuration incurs approximately 16.4 KB across 75 APDUs---roughly 14 times
-the ECC baseline of 1.2 KB---while a \emph{key\_slot} caching optimisation reduces this to
+the ECC baseline of 1.2 KB---while a \emph{key-slot} caching optimisation reduces this to
 11.2 KB, and the lightest viable configuration (D2$\times$K512) achieves 11.9 KB, making
 deployment over a single ISO 14443 NFC channel practical.
 \end{abstract}
 
 \section{Introduction}
 
-The advent of large-scale quantum computing poses a fundamental threat to the public-key cryptography underpinning today's digital infrastructure. Shor's algorithm~\cite{SIAM:Shor97} can factor integers and compute discrete logarithms in polynomial time, rendering RSA and elliptic-curve cryptography (ECC) insecure, while Grover's algorithm~\cite{STOC:Grover96} halves the effective security of symmetric primitives. Although the timeline for cryptographically relevant quantum computers remains uncertain, the strategic risk is real: adversaries may harvest ciphertext today and decrypt it once quantum capability matures---a threat model known as ``harvest now, decrypt later.'' In response, the National Institute of Standards and Technology (NIST) has finalised two post-quantum cryptography (PQC) standards: FIPS~203 (ML-KEM, based on CRYSTALS-Kyber)~\cite{NIST:FIPS203} for key encapsulation, and FIPS~204 (ML-DSA, based on CRYSTALS-Dilithium)~\cite{NIST:FIPS204} for digital signatures. NIST IR~8547~\cite{NIST:IR8547} further mandates that federal agencies complete migration away from RSA and ECC by 2035. Physical access control systems are a particularly sensitive target: NFC-based door locks and vehicle entry systems guard critical infrastructure and personal safety, yet virtually all deployed protocols rely on ECC. Transitioning these systems to post-quantum security before the quantum threat materialises is therefore an urgent engineering challenge.
+The advent of large-scale quantum computing poses a fundamental threat to the public-key cryptography underpinning today's digital infrastructure. Shor's algorithm~\cite{SIAM:Shor97} can factor integers and compute discrete logarithms in polynomial time, rendering RSA and elliptic-curve cryptography (ECC) insecure, while Grover's algorithm~\cite{STOC:Grover96} halves the effective security of symmetric primitives. Although the timeline for cryptographically relevant quantum computers remains uncertain, the strategic risk is real: adversaries may harvest ciphertext today and decrypt it once quantum capability matures---a threat model known as ``harvest now, decrypt later.'' In response, the National Institute of Standards and Technology (NIST) has finalised two post-quantum cryptography (PQC) standards: FIPS~203 (ML-KEM, based on CRYSTALS-Kyber)~\cite{NIST:FIPS203} for key encapsulation, and FIPS~204 (ML-DSA, based on CRYSTALS-Dilithium)~\cite{NIST:FIPS204} for digital signatures. NIST IR~8547~\cite{NIST:IR8547} further mandates that federal agencies complete migration away from RSA and ECC by 2035. Physical access control systems are a particularly sensitive target: NFC-based door locks and vehicle entry systems guard critical infrastructure and personal safety, yet virtually all deployed protocols rely on ECC. Transitioning these systems to post-quantum security before the quantum threat materialises is therefore an urgent engineering challenge. Beyond passive harvesters, NFC access-control protocols face active adversaries capable of man-in-the-middle, replay, and relay attacks; our formal model captures the first two, while relay is mitigated by NFC's physical proximity assumption.
 
-Aliro~1.0~\cite{CSA:Aliro10}, published by the Connectivity Standards Alliance (CSA), is a recently standardised multi-modal access-control protocol supporting NFC, BLE, and UWB bearers. Its cryptographic core is built on ECC: an ECDH key-exchange over P-256 for session-key establishment and ECDSA for certificate-based entity authentication. Similar designs appear in the automotive domain through CCC Digital Key~3.0~\cite{CCC:DigKey3}, which likewise relies on ECDH/ECDSA for secure vehicle-phone pairing. Integrating ML-KEM and ML-DSA into such protocols is non-trivial for three interconnected reasons. First, \emph{object-size inflation}: an ML-DSA-65 public key occupies 1{,}952 bytes and a signature 3{,}309 bytes, compared with 65 bytes and $\approx$72 bytes for ECDSA on P-256---an increase of roughly $30\times$ and $46\times$, respectively. An ML-KEM-768 ciphertext is 1{,}088 bytes, versus 65 bytes for an ephemeral ECDH public key. Second, \emph{NFC channel constraints}: ISO/IEC~14443~\cite{ISOIEC14443} ISO-DEP frames carry at most 255 bytes of application data per APDU, and the physical-layer bit rate ranges from 106 to 848~kbit/s. Even at 424~kbit/s---the rate typically negotiated by Android HCE---a single PQ-Aliro transaction under the default ML-DSA-65 $\times$ ML-KEM-768 configuration transfers approximately 16.4~KB across $\approx$75 APDUs, roughly $14\times$ the $\approx$1.2~KB of a classical ECC transaction. Third, \emph{platform limitations}: Android's \texttt{KeyStore} API exposes no native support for lattice-based algorithms, requiring the implementation to manage PQC key material entirely in software using third-party libraries such as BouncyCastle.
+Aliro~1.0~\cite{CSA:Aliro10}, published by the Connectivity Standards Alliance (CSA), is a recently standardised multi-modal access-control protocol supporting NFC, BLE, and UWB bearers. Its cryptographic core is built on ECC: an ECDH key-exchange over P-256 for session-key establishment and ECDSA for certificate-based entity authentication. Similar designs appear in the automotive domain through CCC Digital Key~3.0~\cite{CCC:DigKey3}, which likewise relies on ECDH/ECDSA for secure vehicle-phone pairing. Integrating ML-KEM and ML-DSA into such protocols is non-trivial for three interconnected reasons. First, \emph{object-size inflation}: an ML-DSA-65 public key occupies 1{,}952 bytes and a signature 3{,}309 bytes, compared with 65 bytes and approximately 72 bytes for ECDSA on P-256---an increase of roughly $30\times$ and $46\times$, respectively. An ML-KEM-768 ciphertext is 1{,}088 bytes, versus 65 bytes for an ephemeral ECDH public key. Second, \emph{NFC channel constraints}: ISO/IEC~14443~\cite{ISOIEC14443} ISO-DEP frames carry at most 255 bytes of application data per APDU, and the physical-layer bit rate ranges from 106 to 848~kbit/s. Even at 424~kbit/s---the rate typically negotiated by Android HCE---a single PQ-Aliro transaction under the default ML-DSA-65 $\times$ ML-KEM-768 configuration transfers approximately 16.4~KB across approximately 75 APDUs, roughly $14\times$ the approximately 1.2~KB of a classical ECC transaction. Third, \emph{platform limitations}: Android's \texttt{KeyStore} API exposes no native support for lattice-based algorithms, requiring the implementation to manage PQC key material entirely in software using third-party libraries such as BouncyCastle.
 
-This paper presents \textbf{PQ-Aliro}, which, to the best of our knowledge, is the first complete PQC upgrade of any Aliro-family protocol (see \S\,\ref{sec:related}). Our contributions are as follows:
+With ML-KEM and ML-DSA finalised as FIPS~203/204 in 2024 and BouncyCastle~1.78 BCPQC providing production-grade implementations, the prerequisites for a standards-compliant PQC upgrade of Aliro are now in place. This paper presents \textbf{PQ-Aliro}, which, to the best of our knowledge, is the first PQC upgrade of the Aliro NFC expedited flow (see \S\,\ref{sec:related}). Our contributions are as follows:
 
 \begin{enumerate}
 
 \item \textbf{Protocol design and implementation.}
-We design a drop-in PQC variant of the Aliro Expedited flow that replaces ECDH with ML-KEM-768 key encapsulation and ECDSA with ML-DSA-65 signatures, preserving the three-round AUTH0/LOADCERT/AUTH1 message structure. We provide a full open-source implementation: an Android HCE user-device app and a PC NFC reader, both using BouncyCastle~1.78 BCPQC as the cryptographic back-end.
+We specify a PQC instantiation of the Aliro Expedited flow that replaces ECDH with ML-KEM-768 key encapsulation and ECDSA with ML-DSA-65 signatures, preserving the three-round AUTH0/LOADCERT/AUTH1 message structure. We provide a full open-source implementation: an Android HCE user-device app and a PC NFC reader, both using BouncyCastle~1.78 BCPQC as the cryptographic back-end. We restrict our implementation to the NFC bearer; BLE and UWB transports and Secure Element offload are out of scope.
 
 \item \textbf{APDU-level overhead analysis.}
-We conduct an exhaustive byte-accurate analysis of communication overhead for all nine PQC parameter combinations (Dilithium$\{2,3,5\} \times $Kyber$\{512,768,1024\}$). Overhead ranges from $\approx$11.9~KB (D2$\times$K512) to $\approx$23.2~KB (D5$\times$K1024), compared to $\approx$1.2~KB for the classical ECC instantiation. The default ML-DSA-65 $\times$ ML-KEM-768 configuration incurs $\approx$16.4~KB and $\approx$75 APDUs per transaction; the lightest ML-DSA-44 $\times$ ML-KEM-512 configuration reduces this to $\approx$11.9~KB and $\approx$55 APDUs. We additionally show that a \emph{key-slot} optimisation---pre-caching the reader certificate on the user device---eliminates the LOADCERT round and saves $\approx$5--7~KB. To our knowledge, no prior work provides a complete, APDU-granular communication-overhead analysis for a PQC-upgraded NFC access-control protocol.
+{\sloppy
+We conduct an exhaustive byte-accurate analysis of communication overhead for all nine PQC parameter combinations: Dilithium $\{2,3,5\}$ $\times$ Kyber $\{512,768,1024\}$. Overhead ranges from approximately 11.9~KB (D2$\times$K512) to approximately 23.2~KB (D5$\times$K1024), compared to approximately 1.2~KB for the classical ECC instantiation. The default ML-DSA-65 $\times$ ML-KEM-768 configuration incurs approximately 16.4~KB and approximately 75 APDUs per transaction; the lightest ML-DSA-44 $\times$ ML-KEM-512 configuration reduces this to approximately 11.9~KB and approximately 55 APDUs. We additionally show that a \emph{key-slot} optimisation---pre-caching the reader certificate on the user device---eliminates the LOADCERT round and saves approximately 5--7~KB. To our knowledge, no prior work provides a complete, APDU-granular communication-overhead analysis for a PQC-upgraded NFC access-control protocol.
+\par}
 
 \item \textbf{Formal security analysis.}
-Building on the AKE security model of Sch{\"a}ge et al.~\cite{PKC:SchSchLau20} (which extends Bellare--Rogaway~\cite{C:BelRog93} with original-key partnering and responder-identity privacy) and the provable security of ML-KEM~\cite{EuroSP:BDKLLSSSS18} and ML-DSA~\cite{TCHES:DKLLSSS18}, we prove that PQ-Aliro achieves mutual authentication, forward secrecy (under long-term key corruption), and reader-identity privacy. The security bound reduces to the IND-1CCA security of ML-KEM-768, the EUF-CMA security of ML-DSA-65, the PRF security of HKDF, and the AEAD security of AES-256-GCM (see \S\,6--7 for the full model and proof).
+Building on the AKE security model of Sch{\"a}ge et al.~\cite{PKC:SchSchLau20} (which extends Bellare--Rogaway~\cite{C:BelRog93} with original-key partnering and responder-identity privacy) and the provable security of ML-KEM~\cite{EuroSP:BDKLLSSSS18} and ML-DSA~\cite{TCHES:DKLLSSS18}, we prove, instantiating the Sch{\"a}ge et al.~framework with PQC primitives, that PQ-Aliro achieves mutual authentication upon AUTH1 verification, forward secrecy (under long-term key corruption) after session completion, and reader-identity privacy against passive eavesdroppers. The security bound reduces to the IND-1CCA security of ML-KEM-768, the EUF-CMA security of ML-DSA-65, the PRF security of HKDF, and the AEAD security of AES-256-GCM (see \S\,6--7 for the full model and proof). Our model does not capture side-channel attacks, ephemeral-state compromise, or relay attacks; the latter is mitigated at the physical layer by NFC's inherent $\sim$10~cm proximity limit.
 
 \item \textbf{Engineering insights for constrained Android HCE.}
-We identify and resolve two Android-specific hazards invisible at the protocol level: Dilithium private-key exposure through JVM garbage-collection non-determinism (addressed by named-process isolation with immediate self-termination), and HCE main-thread deadlock from blocking ML-DSA signing calls (addressed by asynchronous dispatch). No prior PQC-over-HCE implementation has documented either hazard.
+We identify and resolve two Android-specific hazards invisible at the protocol level: Dilithium private-key exposure through JVM garbage-collection non-determinism (with a typical GC pause window of 50--200~ms, addressed by named-process isolation with immediate self-termination), and HCE main-thread deadlock from blocking ML-DSA signing calls (which triggers an Application Not Responding (ANR) event after 5~s, addressed by asynchronous dispatch). No prior PQC-over-HCE implementation has documented either hazard. These hazards and their mitigations apply to any Android HCE/HAL scenario scheduling long-latency PQC private-key operations, including CCC Digital Key, PQC X.509 certificate verification, and PQC-FIDO2.
 
 \end{enumerate}
+
+\noindent
+Contributions~1 and~2 directly address the first two challenges (object-size inflation and NFC channel constraints); Contribution~3 establishes the formal security guarantees; Contribution~4 resolves the platform-specific implementation hazards.
+
+\noindent
+Contribution~3 is not a formality: replacing ECDH/ECDSA with KEM/signature alters the authentication structure from explicit (signature-on-transcript) to KEM-implicit, necessitating a fresh proof that the implicit-authenticated session key still satisfies mutual authentication under the Sch{\"a}ge et al.~model.
 
 \noindent
 The remainder is organised as follows: \S\,\ref{sec:related} surveys related work; \S\,\ref{sec:prelim} introduces preliminaries; \S\,\ref{sec:design:kdf} presents the protocol; \S\,\ref{sec:model}--\ref{sec:proof} establish security; \S\,\ref{sec:implementation}--\ref{sec:evaluation} describe the implementation and evaluation; \S\,\ref{sec:discussion} discusses optimisations and limitations; \S\,10 concludes.
@@ -121,8 +129,9 @@ The standardisation of post-quantum cryptographic primitives has spurred a
 growing body of work on constructing efficient and provably secure authenticated
 key exchange (AKE) protocols from lattice-based building blocks.
 
+{\sloppy
 KEMTLS~\cite{CCS:SchSteWig20} is a landmark engineering contribution that
-replaces the signature-based handshake of TLS~1.3 with KEM-based mutual
+replaces the signature-\allowbreak based handshake of TLS~1.3 with KEM-based mutual
 authentication, eliminating handshake signatures from the critical path entirely.
 PQ-Aliro takes a complementary but distinct approach: rather than redesigning
 the handshake, it preserves the Aliro APDU command structure and substitutes
@@ -133,6 +142,7 @@ payload fragmentation is handled transparently by the transport layer; PQ-Aliro
 must instead work within the hard 255-byte ISO-DEP APDU boundary of the NFC
 physical layer, making byte-level communication overhead a primary design
 constraint rather than an afterthought.
+\par}
 
 On the theoretical side, Fujioka et al.~\cite{ASIACCS:FSXY13} construct
 one-pass AKE protocols from one-way CCA-secure KEMs, establishing a principled
@@ -205,6 +215,7 @@ Post-quantum WireGuard~\cite{SP:HNSWZ21} integrates lattice-based KEMs into the
 WireGuard VPN protocol, demonstrating that the handshake overhead of
 NIST-round-3 KEMs can be absorbed by a constrained network protocol without
 breaking functional compatibility.
+Unlike WireGuard's 1{,}232-byte UDP payload budget~\cite{SP:HNSWZ21}, PQ-Aliro must operate within a 255-byte ISO-DEP APDU limit~\cite{ISOIEC14443}, making byte-level fragmentation a first-class design constraint rather than a post-hoc optimisation.
 
 The above results focus on IP-based transports or general mobile computing
 contexts.
@@ -219,8 +230,9 @@ To our knowledge, \emph{no prior work provides a complete, APDU-granular
 communication-overhead analysis for a PQC-upgraded NFC access-control
 protocol}.
 
+{\sloppy
 On the standards side, neither Aliro~1.0~\cite{CSA:Aliro10} nor CCC Digital
-Key~3.0~\cite{CCC:DigKey3}---the two leading specifications for smartphone-based
+Key~3.0~\cite{CCC:DigKey3}---the two leading specifications for smartphone-\allowbreak based
 digital access control---provides a post-quantum variant, a PQC migration
 roadmap, or a formal security proof for their AKE core.
 PQ-Aliro addresses all three dimensions---wire compatibility, byte-accurate
@@ -228,6 +240,7 @@ overhead characterisation, and formal security proof---simultaneously: it
 delivers a wire-compatible PQC upgrade, a byte-accurate overhead
 characterisation across all nine ML-KEM/ML-DSA parameter combinations, and a
 formal security proof establishing mutual authentication, forward secrecy (under long-term key corruption), and identity privacy.
+\par}
 % -----------------------------------------------------------------------
 % §3 Preliminaries
 % -----------------------------------------------------------------------
@@ -257,7 +270,7 @@ contactless channel:
 
   \item \textbf{AUTH0 (\texttt{INS = 0x80}), Reader $\to$ UD}: The Reader
         transmits a fresh ephemeral public key together with a
-        \texttt{transaction\_identifier} (16~B) and a \texttt{reader\_identifier}
+        \texttt{transaction-identifier} (16~B) and a \texttt{reader-identifier}
         (32~B).  In the classical ECC instantiation this is a P-256 ECDH
         ephemeral key; in PQ-Aliro it is an ML-KEM-768 ephemeral public key.
         The UD responds with the key-encapsulation ciphertext (or ECDH public
@@ -274,7 +287,7 @@ contactless channel:
         signs the session transcript and sends the signature to the UD.  After
         verifying the transcript signature the UD returns an AEAD-encrypted
         payload containing its own long-term public key, its transcript
-        signature, and a \texttt{signaling\_bitmap} (2~B), authenticated with
+        signature, and a \texttt{signaling-bitmap} (2~B), authenticated with
         AES-GCM using the previously derived session key.
 \end{enumerate}
 
@@ -287,13 +300,15 @@ big-endian length), consuming an extra 4~bytes of framing overhead per field.
 Each command APDU adds a 6-byte header (CLA, INS, P1, P2, Lc, Le),
 and each HCE response appends a 2-byte status word.
 
-In the original ECC instantiation (P-256 ECDH + ECDSA) the total application-layer
+{\sloppy
+In the original ECC instantiation (P-256 ECDH + ECDSA) the total application-\allowbreak layer
 payload per transaction amounts to roughly 1.2~KB, typically completing in a
 handful of APDU round trips.  As Shor's algorithm renders elliptic-curve
 discrete-log problems tractable on a sufficiently large quantum computer, this
 ECC-based design must be migrated to post-quantum primitives --- a transition
 that dramatically increases the cryptographic object sizes and, consequently,
 the NFC communication overhead.
+\par}
 
 % -----------------------------------------------------------------------
 
@@ -301,6 +316,7 @@ the NFC communication overhead.
 \label{sec:pqc}
 
 \paragraph{ML-KEM (Kyber).}
+{\sloppy
 ML-KEM was originally proposed as CRYSTALS-Kyber~\cite{EuroSP:BDKLLSSSS18} and
 was standardised by NIST as FIPS~203~\cite{NIST:FIPS203}.  It is a
 key-encapsulation mechanism (KEM) whose security reduces to the hardness of the
@@ -316,9 +332,11 @@ PQ-Aliro adopts \textbf{ML-KEM-768} (Level~3) by default,
 yielding a public key of 1\,184~bytes, a ciphertext of 1\,088~bytes, and a
 32-byte shared secret.  This KEM replaces the P-256 ECDH ephemeral exchange
 in the AUTH0 step.
+\par}
 
 \paragraph{ML-DSA (Dilithium).}
-ML-DSA was originally proposed as CRYSTALS-Dilithium~\cite{TCHES:DKLLSSS18}
+{\sloppy
+ML-DSA was originally proposed as CRYSTALS-\allowbreak Dilithium~\cite{TCHES:DKLLSSS18}
 and was standardised as FIPS~204~\cite{NIST:FIPS204}.  Its security relies on
 the hardness of Module-LWE and Module Short Integer Solution (Module-SIS), and
 the scheme achieves EUF-CMA security.  Three parameter sets cover NIST security
@@ -329,6 +347,7 @@ two roles: the Reader embeds its long-term ML-DSA public key in the Profile0000
 certificate transmitted during LOADCERT, and signs the session transcript in
 AUTH1; the UD likewise signs the transcript with its own ML-DSA key and returns
 the signature encrypted inside the AUTH1 response.
+\par}
 
 Table~\ref{tab:sizes} summarises the size difference between classical P-256
 objects and their post-quantum counterparts.  Public keys and signatures grow
@@ -374,7 +393,7 @@ A hash function $\msh : \{0,1\}^* \to \{0,1\}^\lambda$ is collision-resistant if
 \[
 \mathsf{Adv}_{\msh}^{\mathsf{coll}}(\mathcal{A}, \lambda) := \Pr\bigl[(x, x') \gets \mathcal{A}(1^\lambda) : x \neq x' \wedge \msh(x) = \msh(x')\bigr] \leq \negli(\lambda).
 \]
-The transcript hash $\mathit{trans} = \msh(pk_e \| c_e)$ in our protocol is modelled as a collision-resistant hash function; the security reduction in Section~\ref{sec:proof} (Game 1) relies on this property.
+In our protocol, $\msh$ is modelled as a collision-resistant hash function; the transcript $\mathit{trans} = \msh(pk_e \| c_e)$ inherits this property.
 \end{defn}
 
 \subsubsection{Key Encapsulation Mechanism}
@@ -461,23 +480,25 @@ The advantage is $\mathsf{Adv}_{\mathsf{SIG}}^{\mathsf{EUF}\text{-}\mathsf{CMA}}
 \end{defn}
 
 \subsubsection{Key Derivation Functions}
-Key derivation employs the HMAC-based Key Derivation Function ($\hkdf$)~\cite{RFC5869}.
-$\hkdf$ follows the extract-then-expand paradigm, using HMAC~\cite{DBLP:journals/rfc/rfc2104} as its building block.
+{\sloppy
+Key derivation employs the HMAC-\allowbreak based Key Derivation Function ($\hkdf$)~\cite{RFC5869}.
+$\hkdf$ follows the extract-\allowbreak then-\allowbreak expand paradigm, using HMAC~\cite{DBLP:journals/rfc/rfc2104} as its building block.
 $\hkdf$ comprises two procedures:
+\par}
 \begin{itemize}
     \item $\hkdf.\extr(\mathit{salt},\mathit{IKM})$: extracts a pseudorandom key from input keying material using an optional salt, as $\hmac.\mathsf{Mac}(\mathit{salt},\mathit{IKM})$.
     \item $\hkdf.\expand(\mathit{PRK},\mathit{info},L)$: expands the pseudorandom key into $L$ bits using context string $\mathit{info}$~\cite{JC:DFGS21}.
 \end{itemize}
 
 \begin{defn}[Pseudorandom Function (PRF)] \label{def:prf}
-A pseudorandom function $\mathsf{PRF}: \mathcal{K} \times \mathcal{L} \to \{0,1\}^\lambda$ is secure if for every PPT adversary $\mathcal{A}$,
+A pseudorandom function $\mathsf{PRF}: \mathcal{K}_{\mathsf{PRF}} \times \mathcal{L}_{\mathsf{PRF}} \to \{0,1\}^\lambda$ is secure if for every PPT adversary $\mathcal{A}$,
 \[
-\mathsf{Adv}_{\mathsf{PRF}}^{\mathsf{PRF}\text{-}\mathsf{sec}}(\mathcal{A}, \lambda) = \left| \Pr\left[ k \gets \mathcal{K} : \mathcal{A}^{\mathsf{PRF}(k,\cdot)} = 1 \right] - \Pr\left[ \mathcal{A}^{R(\cdot)} = 1 \right] \right| \leq \negli(\lambda),
+\mathsf{Adv}_{\mathsf{PRF}}^{\mathsf{PRF}\text{-}\mathsf{sec}}(\mathcal{A}, \lambda) = \left| \Pr\left[ k \gets \mathcal{K}_{\mathsf{PRF}} : \mathcal{A}^{\mathsf{PRF}(k,\cdot)} = 1 \right] - \Pr\left[ \mathcal{A}^{R(\cdot)} = 1 \right] \right| \leq \negli(\lambda),
 \]
-where $R: \mathcal{L} \to \{0,1\}^\lambda$ is a uniformly random function.
+where $R: \mathcal{L}_{\mathsf{PRF}} \to \{0,1\}^\lambda$ is a uniformly random function.
 \end{defn}
 
-In our protocol, $\mathsf{HKDF.Extract}$ and $\mathsf{HKDF.Expand}$~\cite{RFC5869} are each modelled as a PRF instance; the input domain $\mathcal{L}$ corresponds to the transcript space, and the output is the session key material.
+In our protocol, $\mathsf{HKDF.Extract}$ and $\mathsf{HKDF.Expand}$~\cite{RFC5869} are each modelled as a PRF instance; the input domain $\mathcal{L}_{\mathsf{PRF}}$ corresponds to the transcript space, and the output is the session key material.
 
 \subsubsection{Authenticated Encryption}
 
@@ -504,7 +525,7 @@ ML-KEM-768 satisfies IND-1CCA (as noted in the remark above) and ML-DSA-65 satis
 \label{sec:design:kdf}
 \noindent{\bf Generic Construction.} 
 The PQ-Aliro protocol is shown in Fig.~\ref{high-level ake2}. There are two users: Reader and User Device. Each party holds a pair of long-term keys.
-As is noted by the Aliro 1.0 specification, ``A Reader SHALL have a key pair (reader\_PubK/reader\_PrivK) and MAY have a certificate (reader\_Cert) containing the Reader public key. The Reader uses this key pair to authenticate itself to the User Device. $\cdots$ A User Device SHALL have an {\bf Access Credential} with a key pair (credential\_PubK/credential\_PrivK) that is unique to the User Device. If an Access Document is present, it SHALL contain the public key of the Access Credential.''
+As is noted by the Aliro 1.0 specification, ``A Reader SHALL have a key pair (reader-PubK/reader-PrivK) and MAY have a certificate (reader-Cert) containing the Reader public key. The Reader uses this key pair to authenticate itself to the User Device. $\cdots$ A User Device SHALL have an {\bf Access Credential} with a key pair (credential-PubK/credential-PrivK) that is unique to the User Device. If an Access Document is present, it SHALL contain the public key of the Access Credential.''
 
 The PQ-Aliro protocol runs as follows.
 Firstly, the Reader uses $\kem.\gen$ to generate a pair of ephemeral keys $({pk}_{e}, {sk}_{e})$.
@@ -554,7 +575,7 @@ For expository clarity, Figure~\ref{high-level ake2} presents the abstract proto
 
 \begin{rmk}
 The implementation hashes the full TLV-encoded AUTH0 command and response
-(including \texttt{trans\_id}, \texttt{reader\_id}, and UD noise) using
+(including \texttt{trans-id}, \texttt{reader-id}, and UD noise) using
 SHAKE256-512~\cite{NIST:FIPS202} rather than the simplified
 $H(pk_e \| c_e)$ in the formal model. The additional fields
 strengthen session binding without affecting the security argument. Specifically, modelling $\msh$ as a collision-resistant hash function (Definition~\ref{def:crhf}), including these fields in the hash input preserves session freshness and transcript uniqueness; since the collision-resistance argument in Game~1 of Section~\ref{sec:proof} applies to any extension of the transcript, the security reduction carries over unchanged.
@@ -571,12 +592,12 @@ to single ISO-DEP APDUs.  Because post-quantum cryptographic objects far exceed
 the 255-byte ISO/IEC~14443 APDU payload limit, every message must be
 \emph{fragmented} into a chain of command or response APDUs before transmission.
 On the Reader (command) side the implementation sets
-\texttt{MAX\_CHUNK\_SIZE = 200\,B} for AUTH0 (\texttt{INS = 0x80}) and AUTH1
-(\texttt{INS = 0x81}), and \texttt{MAX\_CHUNK\_SIZE = 255\,B} for LOADCERT
+\texttt{MAX-CHUNK-SIZE = 200\,B} for AUTH0 (\texttt{INS = 0x80}) and AUTH1
+(\texttt{INS = 0x81}), and \texttt{MAX-CHUNK-SIZE = 255\,B} for LOADCERT
 (\texttt{INS = 0xD1}).
 Each intermediate chunk carries \texttt{P1 = 0x10} to signal that further data
 follows; the final chunk sets \texttt{P1 = 0x00}.
-On the User Device (response) side, \texttt{MAX\_APDU\_CHUNK = 240\,B}; the UD
+On the User Device (response) side, \texttt{MAX-APDU-CHUNK = 240\,B}; the UD
 appends status word \texttt{0x61\,\textit{xx}} to every non-final response chunk
 and \texttt{0x9000} to the last.
 The Reader retrieves subsequent chunks with a \texttt{GET RESPONSE}
@@ -603,13 +624,13 @@ configuration.
 \textbf{Message} & \textbf{Dir.} & \textbf{INS} & \textbf{Payload Summary} & \textbf{Chunk} \\
 \hline
 AUTH0 Cmd    & R$\to$UD & \texttt{0x80} &
-    $pk_e$ (1\,184\,B), \textit{trans\_id} (16\,B), \textit{reader\_id} (32\,B) &
+    $pk_e$ (1\,184\,B), \textit{trans-id} (16\,B), \textit{reader-id} (32\,B) &
     200\,B \\
 AUTH0 Resp   & UD$\to$R & --- &
     KEM ciphertext (1\,088\,B), UD noise (32\,B) &
     240\,B \\
 LOADCERT Cmd & R$\to$UD & \texttt{0xD1} &
-    Profile0000 cert ($\approx$5\,500\,B): $pk_{R}$ (1\,952\,B), $\sigma$ (3\,309\,B), DN ($\approx$200\,B) &
+    Profile0000 cert (approximately 5\,500\,B): $pk_{R}$ (1\,952\,B), $\sigma$ (3\,309\,B), DN (approximately 200\,B) &
     255\,B \\
 LOADCERT Resp & UD$\to$R & --- &
     \texttt{0x9000} only &
@@ -626,13 +647,27 @@ AUTH1 Resp   & UD$\to$R & --- &
 \end{table}
 
 Under this configuration the six messages collectively require approximately
-75 APDUs and transfer $\approx$16.4\,KB of application-layer data, representing
-a $\sim\!14\times$ increase over the $\approx$1.2\,KB of the classical ECC
+75 APDUs and transfer approximately 16.4\,KB of application-layer data, representing
+a $\sim\!14\times$ increase over the approximately 1.2\,KB of the classical ECC
 instantiation.  The dominant contributors are the LOADCERT round
-($\approx$5\,500\,B, 22 APDUs) and the AUTH1 Response
-($\approx$5\,289\,B, 23 APDUs), both driven by the large size of ML-DSA-65
+(approximately 5\,500\,B, 22 APDUs) and the AUTH1 Response
+(approximately 5\,289\,B, 23 APDUs), both driven by the large size of ML-DSA-65
 public keys and signatures.
 
+\paragraph{Relation to the security model.}
+Figure~\ref{high-level ake2} shows that both parties derive five session keys
+from the handshake secret $\mathsf{HS}$: $\mathsf{SKDevice}$ (NFC record-layer
+encryption), $\mathsf{SKReader}$, $\mathsf{StepUpSK}$, $\mathsf{BleSK}$, and
+$\mathsf{URSK}$ (BLE and UWB channels).
+The formal security model in Section~\ref{sec:model} abstracts this key schedule
+into a single session key $k_i^s$, which corresponds to $\mathsf{SKDevice}$---the
+key used for the AUTH1 Response AEAD encryption and therefore the key whose
+indistinguishability is the critical security goal.
+The remaining four keys ($\mathsf{SKReader}$, $\mathsf{StepUpSK}$,
+$\mathsf{BleSK}$, $\mathsf{URSK}$) are derived via independent $\mathsf{HKDF.Expand}$
+calls from the same $\mathsf{HS}$; their security follows from the PRF security
+of $\mathsf{HKDF.Expand}$ (Definition~\ref{def:prf}) under the standard
+key-separation argument, and does not require a multi-stage AKE model.
 
 % -----------------------------------------------------------------------
 % §6 Security Model (from main-Full.tex lines 422-616)
@@ -649,9 +684,11 @@ The expedited-standard phase is designed to achieve the following security objec
 \end{itemize}
 
 \noindent\textbf{Tracking resilience.}
-To realise tracking resilience, any information that could serve as a stable identifier for a User Device (e.g., its identity) must be confidentiality-protected while in transit.
+{\sloppy
+To realise tracking resilience, any information that could serve as a stable identifier for a User Device (e.g., its identity) must be confidentiality-\allowbreak protected while in transit.
 The User Device SHALL construct an {\sf AUTH1 response} that prevents an external observer, by inspecting the response, from inferring whether the device knows a particular reader public key or Access Credential.
 Concretely, the {\sf AUTH1 response} is encrypted, thereby thwarting a malicious Reader from extracting persistent identifiers or testing whether a prior relationship with a specific Reader exists.
+\par}
 
 Our security model builds upon the framework of Sch{\"a}ge et al.~\cite{PKC:SchSchLau20}, which extends the Bellare–Rogaway (BR) model~\cite{C:BelRog93} to naturally capture long-term key compromise and mutual authentication.
 Since Aliro does not aim to resist compromise of \textit{session state} or \textit{ephemeral randomness}, we do not grant the adversary these corruption capabilities.
@@ -795,10 +832,12 @@ where $\mathcal{B}_{1}$--$\mathcal{B}_{5}$ are adversaries against, respectively
 
 \noindent\textit{Proof sketch.}
 We distinguish between two adversary types:
+{\sloppy
     \begin{itemize}
         \item The \emph{initiator} adversary $\adv_{\sf init}$, whose goal is to correctly guess the outcome of $\mathsf{Test}(\pi_{i}^{s}, m)$ when $\pi_{i}^{s}$ plays the initiator role;
         \item The \emph{responder} adversary $\adv_{\sf resp}$, which wins by predicting the result of $\mathsf{Test}(\pi_{i}^{s}, m)$ for a responder session $\pi_{i}^{s}$.
     \end{itemize}
+\par}
 We prove that all derived keys are pseudorandom and the privacy preserving property of the user device identity.
 The argument builds upon the anonymous key-exchange paradigm enhanced with digital signatures for identity authentication.
 % Then we show that no indeitity information of the User Device is reveal from the ciphertext since the security of the AEAD scheme.
@@ -1018,6 +1057,21 @@ platforms: an Android Host Card Emulation (HCE) application acting as the User
 Device (UD) and a PC-side NFC reader application.
 Both implementations are open source and written in Java.
 
+\paragraph{Engineering challenges.}
+{\sloppy
+Porting PQ-Aliro to Android HCE introduces three challenges absent at the
+protocol level:
+(i)~\emph{Key isolation}: Dilithium private keys cannot be stored in Android
+Keystore natively and must be protected against JVM garbage-collection
+non-determinism that can expose heap contents;
+(ii)~\emph{Deadlock prevention}: the HCE main thread cannot block on ML-DSA
+signing without triggering an Application Not Responding (ANR) event;
+(iii)~\emph{APDU fragmentation}: post-quantum objects (up to 3{,}309\,B for
+an ML-DSA-65 signature) must be split across chains of 200--255\,B APDUs
+with correct continuation signalling.
+The following subsections describe the solutions adopted for each challenge.
+\par}
+
 % -----------------------------------------------------------------------
 \subsection{System Architecture}
 \label{sec:impl:arch}
@@ -1068,8 +1122,8 @@ The 1\,184-byte public key is extracted as a raw byte array (the SPKI
 outer wrapper is stripped) and transmitted in the AUTH0 Command under TLV
 tag \texttt{0x87}.
 On the UD, the received bytes are reconstructed into a
-\texttt{KyberPublicKeyParameters} object via a helper
-\texttt{decodeKyberPublicKey(rawBytes)}, which re-attaches the algorithm
+\texttt{Kyber\allowbreak Public\allowbreak Key\allowbreak Parameters} object via a helper
+\texttt{decode\allowbreak Kyber\allowbreak Public\allowbreak Key(rawBytes)}, which re-attaches the algorithm
 identifier before passing the key to the JCA layer.
 
 Encapsulation on the UD uses a \texttt{KeyGenerator} with a
@@ -1087,11 +1141,11 @@ The 1\,088-byte encapsulation $c$ is returned in the AUTH0 Response under
 tag \texttt{0x86}.
 The 32-byte shared secret $S_e$ is immediately imported into the Android
 Keystore under alias \texttt{SSKey}; the raw byte array is then zeroed with
-\texttt{Arrays.fill(rawBytes, (byte) 0x00)} to prevent the secret from
+\texttt{Arrays.\allowbreak fill(raw\-Bytes,\allowbreak\ (byte)\allowbreak\ 0x00)} to prevent the secret from
 persisting on the JVM heap.
 The Reader performs decapsulation symmetrically via \texttt{KEMExtractSpec}
 to recover $S_e$, after which both parties derive the session key
-$\mathit{SK\_device}$ through the KDF chain described in
+$\mathit{SK-device}$ through the KDF chain described in
 Section~\ref{sec:design:kdf}.
 
 % -----------------------------------------------------------------------
@@ -1116,8 +1170,8 @@ Signing uses the standard JCA \texttt{Signature} interface:
 \paragraph{UD-side key isolation.}
 The UD cannot safely hold the Dilithium private key in the main application
 process.
-The root cause is that \texttt{DilithiumPrivateKeyParameters} does not
-implement \texttt{javax.security.auth.Destroyable} in BouncyCastle~1.78;
+The root cause is that \texttt{Dilithium\allowbreak PrivateKey\allowbreak Parameters} does not
+implement \texttt{javax.\allowbreak security.\allowbreak auth.\allowbreak Destroyable} in BouncyCastle~1.78;
 calling \texttt{destroy()} leaves the key material on the JVM heap until the
 garbage collector decides to overwrite the memory region, with no timing
 guarantee.
@@ -1126,31 +1180,33 @@ memory at any point between key generation and GC collection.
 
 To eliminate this attack surface, the UD delegates all Dilithium signing to a
 dedicated \texttt{PQCSignatureService} that runs in a separate named process
-declared with the Android manifest attribute \texttt{android:process=":pqc\_signer"}.
+declared with the Android manifest attribute \texttt{android:\allowbreak process=":\allowbreak pqc-signer"}.
 A named process runs in a separate Linux process with its own address space
 and shares the application's UID, but physically isolates all private-key
 operations from the main process's memory.
-This is distinct from \texttt{android:isolatedProcess="true"}, which would
-assign a distinct UID and deny file-system access; the named-process approach
-is used here because \texttt{PQCSignatureService} requires access to
-\texttt{SharedPreferences} for encrypted key retrieval.
+{\sloppy
+This is distinct from \texttt{android:\allowbreak isolated\allowbreak Process="true"}, which would
+assign a distinct UID and deny file-system access; the named-\allowbreak process approach
+is used here because \texttt{PQCSignature\allowbreak Service} requires access to
+\texttt{Shared\allowbreak Preferences} for encrypted key retrieval.
 The main process sends the message bytes to be signed over a Binder IPC
-interface; \texttt{PQCSignatureService} loads the encrypted private key (see
+interface; \texttt{PQCSignature\allowbreak Service} loads the encrypted private key (see
 below), performs the signing operation entirely within its own address space,
 returns the 3\,309-byte signature over the same Binder channel, and
-immediately calls \texttt{Process.killProcess(Process.myPid())} to terminate
+immediately calls \texttt{Process.\allowbreak kill\allowbreak Process(Process.\allowbreak my\allowbreak Pid())} to terminate
 itself, limiting the key-exposure window to the duration of a single signing invocation (typically $\le$\,150\,ms on mid-range Android hardware).
+\par}
 Because the entire lifecycle of the named process---from private key
 loading to process exit---is bounded to a single signing call, the Dilithium
 private key material never appears in the main application's address space.
 A crash or compromise of the main process cannot access the signing key
-held in the \texttt{:pqc\_signer} address space.
+held in the \texttt{:pqc-signer} address space.
 
 \paragraph{Persistent key storage.}
 The Dilithium private key cannot be stored in Android Keystore directly.
 Instead, it is stored in \texttt{SharedPreferences} encrypted under AES-256-GCM~\cite{NIST:SP80038D}:
 the raw private key bytes are encrypted once at provisioning time
-(\texttt{KEY\_KYB\_PRIV\_CT} stores the ciphertext, \texttt{KEY\_KYB\_PRIV\_IV}
+(\texttt{KEY-KYB-PRIV-CT} stores the ciphertext, \texttt{KEY-KYB-PRIV-IV}
 stores the GCM IV), and the 256-bit AES wrapping key is held in Android
 Keystore, which provides hardware-backed protection on devices with a Trusted
 Execution Environment.
@@ -1168,7 +1224,7 @@ The Reader sends AUTH0 and AUTH1 command chunks of at most 200 bytes, and
 LOADCERT chunks of at most 255 bytes.
 The UD sends response chunks of at most 240 bytes.
 Fields longer than 255 bytes are encoded with the BER-TLV long-form length
-prefix \texttt{0x82\,\textit{len\_hi}\,\textit{len\_lo}}, adding 4 bytes of
+prefix \texttt{0x82\,\textit{len-hi}\,\textit{len-lo}}, adding 4 bytes of
 overhead per affected field.
 This encoding is applied to the ML-KEM-768 ephemeral public key (tag
 \texttt{0x87}), the KEM ciphertext (tag \texttt{0x86}), all ML-DSA-65
@@ -1198,7 +1254,7 @@ commands collecting the remaining 22 chunks.
 
 \paragraph{AEAD and IV management.}
 The AUTH1 Response payload is protected by AES-256-GCM using the session key
-$\mathit{SK\_device}$.
+$\mathit{SK-device}$.
 The GCM IV is derived as the 12-byte value
 $\texttt{0x00\,00\,00\,00\,00\,00\,00\,01} \mathbin{\|} \mathit{ctr}$,
 where $\mathit{ctr}$ is a 4-byte big-endian counter initialised to 1 and
@@ -1216,25 +1272,27 @@ throughout this implementation.
 \label{sec:impl:testing}
 
 The implementation is validated by a comprehensive end-to-end test suite
-that exercises all nine PQC parameter combinations:
-Dilithium$\{2,3,5\} \times$ Kyber$\{512,768,1024\}$.
+that exercises all nine PQC parameter combinations
+{\sloppy($\text{Dilithium}\{2,3,5\}\,\allowbreak\times\,\text{Kyber}\{512,768,1024\}$).\par}
 The test harness runs entirely in-memory: the PC-side Reader and the Android
 HCE logic are instantiated within the same JVM process, with a byte-array
 channel substituting for the physical NFC interface.
 This removes the need for real NFC hardware and makes the tests fully
 reproducible in a standard CI environment.
 
+{\sloppy
 Each test configuration exercises 20 assertions covering: (i) KEM
 correctness---that the shared secret $S_e$ recovered by the Reader via
-\texttt{KEMExtractSpec} matches the value encapsulated by the UD; (ii)
-transcript hash consistency---that $\mathit{transAH0} =
-\mathrm{SHAKE256\text{-}512}(\mathit{AUTH0\_cmd} \mathbin{\|} \mathit{AUTH0\_resp})$~\cite{NIST:FIPS202}
+\texttt{KEM\allowbreak Extract\allowbreak Spec} matches the value encapsulated by the UD; (ii)
+transcript hash consistency---\allowbreak that $\mathit{transAH0} =
+\mathrm{SHAKE256\text{-}512}(\mathit{AUTH0\text{-}cmd} \mathbin{\|} \mathit{AUTH0\text{-}resp})$~\cite{NIST:FIPS202}
 is identical on both sides; (iii) KDF consistency---that
-$\mathit{SK\_device}$ derived by both parties is identical;
+$\mathit{SK-device}$ derived by both parties is identical;
 (iv) AEAD round-trip correctness; (v) ML-DSA signature verification in both
 directions (Reader signature verified by UD, UD signature verified by Reader);
 and (vi) serialisation integrity of all TLV fields across the fragmentation
 and reassembly pipeline.
+\par}
 All 20 assertions pass across all nine parameter combinations, confirming
 the correctness of the implementation for the full range of NIST security
 levels supported by PQ-Aliro~\cite{NIST3PQC:Lima21}.
@@ -1280,7 +1338,7 @@ transmitted on the wire, so it does not contribute to link bytes.
 
 A notable source of per-field overhead is the BER-TLV long-form length
 encoding.  Any field whose encoded length exceeds 255\,B requires a
-three-byte length header (\texttt{0x82}\,$\|$\,\textit{len\_hi}\,$\|$\,\textit{len\_lo})
+three-byte length header (\texttt{0x82}\,$\|$\,\textit{len-hi}\,$\|$\,\textit{len-lo})
 instead of one byte, contributing 4\,B of tag-length overhead per field.
 Since every PQC object—Kyber public keys ($\ge 800$\,B), ciphertexts
 ($\ge 768$\,B), and Dilithium public keys ($\ge 1312$\,B) and signatures
@@ -1305,7 +1363,7 @@ Chunk sizes: Reader\,$\le$\,200\,B/APDU, UD\,$\le$\,240\,B/APDU.}
 \hline
 AUTH0 Command   &  7   & 1{,}250   & 1{,}292   \\
 AUTH0 Response  &  5   & 1{,}126   & 1{,}136   \\
-LOADCERT Command & $\approx$22 & $\approx$5{,}500 & $\approx$5{,}632 \\
+LOADCERT Command & approximately 22 & approximately 5{,}500 & approximately 5{,}632 \\
 LOADCERT Response &  1  &       2   &       4   \\
 AUTH1 Command   & 17   & 3{,}316   & 3{,}418   \\
 AUTH1 Response  & 23   & 5{,}289   & 5{,}335   \\
@@ -1316,21 +1374,21 @@ AUTH1 Response  & 23   & 5{,}289   & 5{,}335   \\
 \end{table}
 
 \paragraph{Comparison with ECC Aliro.}
-The classical ECC Aliro flow (Curve P-256) transfers approximately 1.2\,KB (comprising an ephemeral ECDH public key 65\,B, an ECDSA signature $\approx$72\,B, a P-256 certificate $\approx$1\,000\,B, and framing overhead across $\approx$8\,APDUs, totalling $\approx$1.2\,KB)
+The classical ECC Aliro flow (Curve P-256) transfers approximately 1.2\,KB (comprising an ephemeral ECDH public key 65\,B, an ECDSA signature approximately 72\,B, a P-256 certificate approximately 1\,000\,B, and framing overhead across approximately 8\,APDUs, totalling approximately 1.2\,KB)
 per transaction: an EC ephemeral public key of 65\,B, an ECDSA signature of
 roughly 72\,B, and the long-term certificate.  PQ-Aliro (D3\,$\times$\,K768)
 incurs approximately $16.4/1.2 \approx \mathbf{14\times}$ more link bytes.
 The dominant contributors are the Dilithium3 public key (1{,}952\,B,
-$\approx$30$\times$ the 65\,B EC key) and the Dilithium3 signature
-(3{,}309\,B, $\approx$46$\times$ the 72\,B ECDSA signature); the Kyber768
+approximately 30$\times$ the 65\,B EC key) and the Dilithium3 signature
+(3{,}309\,B, approximately 46$\times$ the 72\,B ECDSA signature); the Kyber768
 ciphertext (1{,}088\,B) is approximately 17$\times$ larger than an ECDH
 ephemeral point.  The single largest contributing phase is LOADCERT, which
-alone accounts for approximately 5.5\,KB ($\approx$33\% of the total), as
+alone accounts for approximately 5.5\,KB (approximately 33\% of the total), as
 it must transmit the Reader's complete Dilithium certificate.
 
 \paragraph{LOADCERT elimination.}
 When the User Device already caches the Reader's certificate (via a
-\texttt{key\_slot} index or pre-provisioning), the LOADCERT exchange can be
+\texttt{key-slot} index or pre-provisioning), the LOADCERT exchange can be
 skipped entirely, saving approximately 22\,APDUs and 5.5\,KB.  Total
 overhead drops to approximately 52\,APDUs / 11.2\,KB—a 32\% reduction
 that largely closes the gap with the D2 configurations while maintaining
@@ -1346,23 +1404,29 @@ key and signature sizes~\cite{NIST:FIPS204}.
 \begin{table}[t]
 \centering
 \caption{Communication overhead for all nine PQC parameter combinations
-(with LOADCERT).  Security levels follow NIST PQC standards~\cite{NIST:FIPS203,NIST:FIPS204}.}
+(with LOADCERT).  Security levels follow NIST PQC standards~\cite{NIST:FIPS203,NIST:FIPS204}.
+The ``With \texttt{key-slot}'' column shows the reduced overhead when LOADCERT is
+eliminated by pre-caching the Reader certificate on the User Device
+(saving approximately 4.0\,KB for Level~2, approximately 5.5\,KB for Level~3, and
+approximately 7.5\,KB for Level~5).}
 \label{tab:overhead_configs}
-\begin{tabular}{lccc}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lcccc}
 \hline
-\textbf{Configuration} & \textbf{NIST Level} & \textbf{Total APDUs} & \textbf{Total bytes} \\
+\textbf{Configuration} & \textbf{NIST Level} & \textbf{Total APDUs} & \textbf{Total bytes} & \textbf{With \texttt{key-slot}} \\
 \hline
-ML-DSA-44 $\times$ ML-KEM-512  & 2 &  55 & $\approx$11.9\,KB \\
-ML-DSA-44 $\times$ ML-KEM-768  & 2 &  58 & $\approx$12.6\,KB \\
-ML-DSA-44 $\times$ ML-KEM-1024 & 2 &  62 & $\approx$13.5\,KB \\
-ML-DSA-65 $\times$ ML-KEM-512  & 3 &  72 & $\approx$15.8\,KB \\
-\textbf{ML-DSA-65 $\times$ ML-KEM-768} & \textbf{3} & \textbf{75} & $\mathbf{\approx}$\textbf{16.4\,KB} \\
-ML-DSA-65 $\times$ ML-KEM-1024 & 3 &  79 & $\approx$17.3\,KB \\
-ML-DSA-87 $\times$ ML-KEM-512  & 5 &  95 & $\approx$21.6\,KB \\
-ML-DSA-87 $\times$ ML-KEM-768  & 5 &  98 & $\approx$22.3\,KB \\
-ML-DSA-87 $\times$ ML-KEM-1024 & 5 & 102 & $\approx$23.2\,KB \\
+ML-DSA-44 $\times$ ML-KEM-512  & 2 &  55 & approximately 11.9\,KB & approximately 7.9\,KB \\
+ML-DSA-44 $\times$ ML-KEM-768  & 2 &  58 & approximately 12.6\,KB & approximately 8.6\,KB \\
+ML-DSA-44 $\times$ ML-KEM-1024 & 2 &  62 & approximately 13.5\,KB & approximately 9.5\,KB \\
+ML-DSA-65 $\times$ ML-KEM-512  & 3 &  72 & approximately 15.8\,KB & approximately 10.3\,KB \\
+\textbf{ML-DSA-65 $\times$ ML-KEM-768} & \textbf{3} & \textbf{75} & $\mathbf{\approx}$\textbf{16.4\,KB} & $\mathbf{\approx}$\textbf{11.2\,KB} \\
+ML-DSA-65 $\times$ ML-KEM-1024 & 3 &  79 & approximately 17.3\,KB & approximately 11.8\,KB \\
+ML-DSA-87 $\times$ ML-KEM-512  & 5 &  95 & approximately 21.6\,KB & approximately 14.1\,KB \\
+ML-DSA-87 $\times$ ML-KEM-768  & 5 &  98 & approximately 22.3\,KB & approximately 14.8\,KB \\
+ML-DSA-87 $\times$ ML-KEM-1024 & 5 & 102 & approximately 23.2\,KB & approximately 15.7\,KB \\
 \hline
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 %-----------------------------------------------------------------------
@@ -1384,7 +1448,7 @@ smartphone-based access control deployments.
 \paragraph{Methodology and scope of estimates.}
 The latency figures in Table~\ref{tab:latency} account for bit-transmission time
 (total link bytes divided by bit rate) only.
-Per-APDU round-trip overhead---including ISO/IEC~14443-4~\cite{ISOIEC14443} Frame Waiting Time (FWT) and Reader polling intervals---is not included;
+Per-APDU round-\allowbreak trip overhead---including ISO/IEC~14443-4~\cite{ISOIEC14443} Frame Waiting Time (FWT) and Reader polling intervals---is not included;
 for a 75-APDU exchange these round-trip costs can add several hundred milliseconds
 on real hardware.
 Additionally, the implementation's asynchronous signing mechanism
@@ -1408,9 +1472,9 @@ CRC/PCB framing is not included.}
 \hline
 \textbf{Bit rate} & \textbf{D3$\times$K768 (16.4\,KB)} & \textbf{D2$\times$K512 (11.9\,KB)} & \textbf{D5$\times$K1024 (23.2\,KB)} \\
 \hline
-106\,kbit/s & $\approx$2.0\,s & $\approx$1.5\,s & $\approx$2.9\,s \\
-424\,kbit/s & $\approx$0.5\,s & $\approx$0.4\,s & $\approx$0.7\,s \\
-848\,kbit/s & $\approx$0.25\,s & $\approx$0.20\,s & $\approx$0.36\,s \\
+106\,kbit/s & approximately 2.0\,s & approximately 1.5\,s & approximately 2.9\,s \\
+424\,kbit/s & approximately 0.5\,s & approximately 0.4\,s & approximately 0.7\,s \\
+848\,kbit/s & approximately 0.25\,s & approximately 0.20\,s & approximately 0.36\,s \\
 \hline
 \end{tabular}
 \end{table}
@@ -1442,12 +1506,12 @@ physical NFC hardware constitutes important future work.
 
 The nine configurations in Table~\ref{tab:overhead_configs} span three
 NIST security levels and a 1.95$\times$ overhead range (11.9\,KB to
-23.2\,KB).  A Pareto analysis across the security–overhead space identifies
+23.2\,KB).  A Pareto analysis across the security\,–\,\allowbreak overhead space identifies
 the following deployment profiles.
 
 \paragraph{NIST Level~2 (D2 configurations, 11.9–13.5\,KB).}
 The D2$\times$K512 configuration achieves the minimum overhead of
-$\approx$11.9\,KB—a 27\% reduction relative to the default—while still
+approximately 11.9\,KB—a 27\% reduction relative to the default—while still
 meeting the NIST Level~2 security target~\cite{NIST:FIPS203,NIST:FIPS204}.
 This profile is suitable for deployments where transmission latency is
 critical (e.g., high-throughput turnstiles) and where the reduced margin
@@ -1458,7 +1522,7 @@ threat model.
 The D3$\times$K768 configuration represents the Pareto-optimal balance
 between security and overhead.  It provides NIST Security Level~3 (AES-192
 equivalent, approximately 96-bit post-quantum security) for both the
-key-encapsulation and signature primitives, and its $\approx$16.4\,KB
+key-encapsulation and signature primitives, and its approximately 16.4\,KB
 footprint is manageable at 424\,kbit/s.  We adopt this as the \emph{default}
 for PQ-Aliro~\cite{NIST:FIPS203,NIST:FIPS204}.
 
@@ -1467,16 +1531,16 @@ The D5$\times$K1024 configuration offers the highest available security (256-bit
 post-quantum), at a cost of $+$41\% overhead relative to the default.  With
 an estimated 2.9\,s transmission time at 106\,kbit/s, this profile is
 impractical at the slowest NFC speed but fully viable at 424\,kbit/s
-($\approx$0.7\,s) and, assuming the theoretical latency estimates hold on real hardware, would be suitable for high-assurance installations such
+(approximately 0.7\,s) and, assuming the theoretical latency estimates hold on real hardware, would be suitable for high-assurance installations such
 as data-centre access control or government facilities.
 
 \paragraph{Summary.}
 Deployers can select the parameter set that best matches their threat
 model: D2$\times$K512 for latency-sensitive or resource-constrained
 environments, D3$\times$K768 as a balanced default, and D5$\times$K1024
-for maximum long-term security.  The \texttt{key\_slot} optimisation
+for maximum long-term security.  The \texttt{key-slot} optimisation
 (Section~\ref{sec:eval:overhead}) orthogonally reduces overhead by
-$\approx$5.5\,KB across all tiers, and should be enabled whenever the
+approximately 5.5\,KB across all tiers, and should be enabled whenever the
 deployment architecture permits Reader-certificate pre-provisioning on
 the User Device.
 
@@ -1494,15 +1558,15 @@ The overhead figures above, together with the latency estimates, motivate the op
 
 The default PQ-Aliro configuration (ML-DSA-65 $\times$ ML-KEM-768) incurs approximately 16.4\,KB across 75 APDU exchanges---roughly 14$\times$ the overhead of a classical ECC-based Aliro flow. We identify three complementary strategies that can substantially reduce this cost.
 
-\textbf{LOADCERT Elimination via \texttt{key\_slot}.}
-The Aliro 1.0 specification~\cite{CSA:Aliro10} defines a \texttt{key\_slot} field that allows a User Device (UD) to reference a Reader certificate already stored in its credential store, bypassing the explicit \texttt{LOADCERT} exchange. Eliminating LOADCERT removes approximately 22 APDU exchanges and saves $\sim$5.5\,KB, reducing the total footprint to $\sim$11.2\,KB across 52 APDUs---a 32\,\% reduction. This strategy is well-suited to enterprise deployments where a fixed set of Readers is trusted and their Dilithium certificates can be pre-provisioned at enrollment time. The trade-off is operational: it requires an out-of-band certificate provisioning infrastructure and complicates Reader certificate rotation. Nevertheless, for high-frequency access scenarios such as corporate office doors, the latency benefit of skipping a 22-round sub-flow is significant.
+\textbf{LOADCERT Elimination via \texttt{key-slot}.}
+The Aliro 1.0 specification~\cite{CSA:Aliro10} defines a \texttt{key-slot} field that allows a User Device (UD) to reference a Reader certificate already stored in its credential store, bypassing the explicit \texttt{LOADCERT} exchange. Eliminating LOADCERT removes approximately 22 APDU exchanges and saves $\sim$5.5\,KB, reducing the total footprint to $\sim$11.2\,KB across 52 APDUs---a 32\,\% reduction. This strategy is well-suited to enterprise deployments where a fixed set of Readers is trusted and their Dilithium certificates can be pre-provisioned at enrollment time. The trade-off is operational: it requires an out-of-band certificate provisioning infrastructure and complicates Reader certificate rotation. Nevertheless, for high-frequency access scenarios such as corporate office doors, the latency benefit of skipping a 22-round sub-flow is significant.
 
 \textbf{Downgrading to NIST Security Level~2.}
 FIPS~203~\cite{NIST:FIPS203} and FIPS~204~\cite{NIST:FIPS204} both specify parameter sets at Security Levels 2, 3, and 5. Switching from the Level-3 combination (ML-DSA-65 $\times$ ML-KEM-768) to the Level-2 combination (ML-DSA-44 $\times$ ML-KEM-512) yields a total overhead of $\sim$11.9\,KB---a 27\,\% saving over the default. This configuration is appropriate for lower-risk deployments (e.g., gym or library access) where the quantum threat horizon is more distant, but it is unsuitable for high-assurance use cases such as data-centre entry or government facilities, where Level-3 or Level-5 protection is warranted.
 
 
 \textbf{Profile0000 Certificate Compression.}
-The Aliro Profile0000 certificate uses a custom DER encoding that includes full Distinguished Name (DN) fields totalling approximately 200\,bytes. In scenarios where a \texttt{key\_slot} index is used in the \texttt{AUTH1 Response} instead of transmitting the UD's Dilithium public key inline, an additional $\sim$1.9\,KB can be saved. Further compression of the DN fields or adoption of a compact certificate format would provide incremental gains without compromising the authentication semantics defined in the Aliro specification~\cite{CSA:Aliro10}.
+The Aliro Profile0000 certificate uses a custom DER encoding that includes full Distinguished Name (DN) fields totalling approximately 200\,bytes. In scenarios where a \texttt{key-slot} index is used in the \texttt{AUTH1 Response} instead of transmitting the UD's Dilithium public key inline, an additional $\sim$1.9\,KB can be saved. Further compression of the DN fields or adoption of a compact certificate format would provide incremental gains without compromising the authentication semantics defined in the Aliro specification~\cite{CSA:Aliro10}.
 
 \subsection{Limitations}
 \label{subsec:limitations}
@@ -1522,7 +1586,7 @@ The ML-DSA-65 signing time of 50--100\,ms cited in Section~\ref{sec:evaluation} 
 The LOADCERT-elimination optimisation assumes that the Credential Issuer can reliably pre-provision Reader certificates into each UD at enrollment time and keep them synchronised across certificate renewals. This requirement adds non-trivial infrastructure burden and may not be feasible in open-ended deployments where any compliant Reader should be able to interact with any UD without prior pairing.
 
 \textbf{Certificate revocation in key-slot mode.}
-The \texttt{key\_slot} optimisation pre-provisions Reader certificates on the User Device.
+The \texttt{key-slot} optimisation pre-provisions Reader certificates on the User Device.
 No revocation mechanism is specified: if a Reader device is compromised or decommissioned,
 User Devices that have cached its certificate will continue to authenticate to it.
 Incorporating certificate status checks (e.g., OCSP stapling or short-lived certificates)
@@ -1530,21 +1594,21 @@ within the NFC session would add overhead but is essential for enterprise deploy
 where Reader devices may be revoked.
 
 \textbf{Reader-side linkability.}
-Our tracking-resilience theorem (Section~\ref{sec:model}) captures \emph{User Device identity privacy} only; reader-side identity is explicitly outside the model's scope, because the \texttt{reader\_identifier} is transmitted in plaintext in the AUTH0 Command by design in the Aliro~1.0 specification~\cite{CSA:Aliro10}.
-The \texttt{reader\_identifier} field (32 bytes) is transmitted in plaintext within
+Our tracking-resilience theorem (Section~\ref{sec:model}) captures \emph{User Device identity privacy} only; reader-side identity is explicitly outside the model's scope, because the \texttt{reader-identifier} is transmitted in plaintext in the AUTH0 Command by design in the Aliro~1.0 specification~\cite{CSA:Aliro10}.
+The \texttt{reader-identifier} field (32 bytes) is transmitted in plaintext within
 the \textsc{Auth0} Command, allowing a passive eavesdropper to correlate all NFC
 transactions at a fixed reader location. While the Aliro~1.0 specification~\cite{CSA:Aliro10}
 transmits this field unencrypted by design, it constitutes a form of reader-side
 linkability that our tracking-resilience model (Section~\ref{sec:design:kdf}) does not
 capture. Future work may consider deriving a session-specific reader pseudonym from
-the \texttt{transaction\_identifier} to mitigate this leakage.
+the \texttt{transaction-identifier} to mitigate this leakage.
 
 \textbf{Relay attack exposure.}
 PQ-Aliro, like all NFC-based access-control protocols, relies on the ISO/IEC~14443~\cite{ISOIEC14443}
 physical-layer range limit (${\approx}10$\,cm) rather than cryptographic distance-bounding
 to prevent relay attacks. A relay adversary who tunnels the NFC
 channel over a longer distance can open a door without the legitimate user's
-knowledge. The \texttt{transaction\_identifier} provides replay protection but
+knowledge. The \texttt{transaction-identifier} provides replay protection but
 not relay protection. Integrating distance-bounding mechanisms~\cite{CSA:Aliro10}
 or UWB ranging (available in the Aliro specification) would address this threat.
 
@@ -1595,7 +1659,7 @@ The default D3$\times$K768 configuration exchanges approximately 16.4\,KB across
 75 APDUs, roughly $14\times$ the footprint of the original ECC-based flow
 (${\approx}1.2$\,KB), with the bulk of the expansion attributable to the larger public
 keys and signatures of ML-DSA-65.
-Enabling the \texttt{key\_slot} optimisation---which suppresses the LOADCERT round once
+Enabling the \texttt{key-slot} optimisation---which suppresses the LOADCERT round once
 a certificate is cached on the reader---reduces this to ${\approx}11.2$\,KB, a 32\%
 saving.
 Alternatively, the lighter D2$\times$K512 configuration reaches ${\approx}11.9$\,KB at
